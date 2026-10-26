@@ -27,6 +27,7 @@ fun AlertsSection(
     settings: Settings,
     onChange: (enabled: Boolean, threshold: Double?, dropCents: Double) -> Unit,
     onWeeklyRecap: (Boolean) -> Unit = {},
+    onRangeAlert: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val haptics = rememberHaptics()
@@ -97,6 +98,18 @@ fun AlertsSection(
                 )
             }
             Switch(checked = settings.weeklyRecap, onCheckedChange = { haptics.toggle(it); onWeeklyRecap(it) })
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Alerte réserve", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Quand l'autonomie estimée d'après le carnet passe sous 80 km.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = settings.rangeAlert, onCheckedChange = { haptics.toggle(it); onRangeAlert(it) })
         }
     }
 }

@@ -30,6 +30,7 @@ import com.karelisio.reserve.ui.components.FuelSelector
 import com.karelisio.reserve.ui.components.SourceFooter
 import com.karelisio.reserve.ui.components.StationCard
 import com.karelisio.reserve.ui.home.BestChoiceCard
+import com.karelisio.reserve.ui.home.RangeCard
 import com.karelisio.reserve.ui.home.TrendCard
 import com.karelisio.reserve.ui.theme.ReserveTheme
 import org.junit.Rule
@@ -88,6 +89,14 @@ class ScreenshotTest {
         ) {
             FuelSelector(Fuel.GAZOLE, {}, Modifier.fillMaxWidth())
             BestChoiceCard(ranked.first(), onOpen = {}, onGo = {}, modifier = Modifier.padding(horizontal = 16.dp))
+            RangeCard(
+                com.karelisio.reserve.domain.RangeEstimate(310.0, 20.0, 0.4, 60.0, true, 1L, now - 3 * 86_400_000L),
+                "Clio", Modifier.padding(horizontal = 16.dp),
+            )
+            RangeCard(
+                com.karelisio.reserve.domain.RangeEstimate(55.0, 3.5, 0.07, 60.0, false, 2L, now - 9 * 86_400_000L),
+                null, Modifier.padding(horizontal = 16.dp),
+            )
             TrendCard(trend, Fuel.GAZOLE, Modifier.padding(horizontal = 16.dp))
             ranked.drop(1).forEach { item ->
                 StationCard(

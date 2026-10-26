@@ -88,7 +88,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             AppearanceSection(s, vm::setAppearance)
             VehiclesSection(vehicles, s.activeVehicleId, vm::activateVehicle, vm::saveVehicle, vm::deleteVehicle)
             LoyaltySection(cards, vm::addCard, vm::deleteCard)
-            AlertsSection(s, vm::setAlerts, vm::setWeeklyRecap)
+            AlertsSection(s, vm::setAlerts, vm::setWeeklyRecap, vm::setRangeAlert)
             CarAlertSection(s, vm::setCarAlert)
             SettingsSection("Navigation") {
                 Text("Application pour « Y aller »", style = MaterialTheme.typography.bodyMedium)

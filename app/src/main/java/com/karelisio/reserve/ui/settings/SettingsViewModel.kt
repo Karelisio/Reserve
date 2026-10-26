@@ -68,6 +68,8 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         )
     }
 
+    fun setRangeAlert(enabled: Boolean) = viewModelScope.launch { app.settings.setRangeAlert(enabled) }
+
     fun setWeeklyRecap(enabled: Boolean) = viewModelScope.launch {
         app.settings.setWeeklyRecap(enabled)
         WeeklyRecapWorker.schedule(app.context, enabled)

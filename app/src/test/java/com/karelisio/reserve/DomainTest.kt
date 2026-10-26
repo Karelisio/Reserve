@@ -186,3 +186,29 @@ class WeeklyRecapTest {
         assertTrue(recap.text().startsWith("2 pleins"))
     }
 }
+
+class RangeTest {
+    private val day = 86_400_000L
+    private fun fill(id: Long, d: Long, liters: Double, full: Boolean = true) = com.karelisio.reserve.data.local.FillUpEntity(
+        id = id, date = d * day, stationId = null, stationLabel = "S", fuel = Fuel.GAZOLE, liters = liters,
+        pricePerLiter = 1.8, odometerKm = null, fullTank = full, localAveragePrice = null,
+    )
+
+    @Test
+    fun estimatesRemainingRangeFromHabits() {
+        // 40 L every 10 days = 4 L/day; 6 L/100 km → ~67 km/day.
+        val log = listOf(fill(1, 0, 40.0), fill(2, 10, 40.0), fill(3, 20, 40.0))
+        val estimate = com.karelisio.reserve.domain.RangeEstimator.estimate(log, 50.0, 6.0, now = 25 * day)!!
+        assertEquals(30.0, estimate.remainingLiters, 0.01) // 50 L − 5 days × 4 L
+        assertEquals(500.0, estimate.remainingKm, 0.5)
+        assertEquals(66.7, estimate.kmPerDay, 0.1)
+        assertFalse(estimate.onReserve)
+        val later = com.karelisio.reserve.domain.RangeEstimator.estimate(log, 50.0, 6.0, now = 32 * day)!!
+        assertTrue(later.onReserve) // 2 L left
+    }
+
+    @Test
+    fun needsEnoughHistory() {
+        assertEquals(null, com.karelisio.reserve.domain.RangeEstimator.estimate(listOf(fill(1, 0, 40.0), fill(2, 5, 40.0)), 50.0, 6.0))
+    }
+}

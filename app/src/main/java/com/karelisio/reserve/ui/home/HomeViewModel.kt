@@ -19,6 +19,8 @@ import com.karelisio.reserve.domain.Brand
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.domain.Pricing
+import com.karelisio.reserve.domain.RangeEstimate
+import com.karelisio.reserve.domain.RangeEstimator
 import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.domain.Trend
 import com.karelisio.reserve.domain.TrendAnalyzer
@@ -216,6 +218,17 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
 
     val vehicles: StateFlow<List<VehicleEntity>> = app.vehicles.vehicles
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Estimated range of the active vehicle, from its fuel log. */
+    val range: StateFlow<Pair<RangeEstimate, String?>?> = combine(
+        app.db.fillUps().observeAll(),
+        app.settings.settings.map { it.activeVehicleId }.distinctUntilChanged(),
+        app.vehicles.vehicles,
+    ) { fillUps, activeId, vehicles ->
+        val vehicle = vehicles.firstOrNull { it.id == activeId } ?: return@combine null
+        RangeEstimator.estimate(fillUps.filter { it.vehicleId == vehicle.id }, vehicle.tankCapacity, vehicle.consumption)
+            ?.let { it to vehicle.name.takeIf { vehicles.size > 1 } }
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun activateVehicle(vehicle: VehicleEntity) = viewModelScope.launch {
         app.vehicles.activate(vehicle)

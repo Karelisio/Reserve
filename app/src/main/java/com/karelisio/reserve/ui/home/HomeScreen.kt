@@ -95,6 +95,7 @@ fun HomeScreen(
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val vehicles by vm.vehicles.collectAsStateWithLifecycle()
+    val range by vm.range.collectAsStateWithLifecycle()
     var vehicleMenu by remember { mutableStateOf(false) }
     val haptics = rememberHaptics()
     var showFilters by rememberSaveable { mutableStateOf(false) }
@@ -251,6 +252,11 @@ fun HomeScreen(
                             },
                             modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
                         )
+                    }
+                }
+                range?.let { (estimate, vehicleName) ->
+                    item(key = "range") {
+                        RangeCard(estimate, vehicleName, Modifier.padding(horizontal = 16.dp).animateItem())
                     }
                 }
                 state.trend?.let { trend ->

@@ -49,6 +49,8 @@ data class Settings(
     val weeklyRecap: Boolean = true,
     /** Vehicle whose fuel, consumption and fill are used (see VehicleRepository). */
     val activeVehicleId: Long? = null,
+    /** Notify when the estimated range gets low. */
+    val rangeAlert: Boolean = true,
 )
 
 /** Fill-up suggested after "Y aller", until the user logs it or dismisses it. */
@@ -96,6 +98,8 @@ class SettingsRepository(context: Context) {
         val pureBlack = booleanPreferencesKey("pure_black")
         val weeklyRecap = booleanPreferencesKey("weekly_recap")
         val activeVehicle = longPreferencesKey("active_vehicle")
+        val rangeAlert = booleanPreferencesKey("range_alert")
+        val rangeAlertFillUp = longPreferencesKey("range_alert_fill_up")
     }
 
     val settings: Flow<Settings> = store.data.map { p ->
@@ -125,6 +129,7 @@ class SettingsRepository(context: Context) {
             pureBlack = p[Keys.pureBlack] ?: false,
             weeklyRecap = p[Keys.weeklyRecap] ?: true,
             activeVehicleId = p[Keys.activeVehicle],
+            rangeAlert = p[Keys.rangeAlert] ?: true,
         )
     }
 
@@ -184,6 +189,20 @@ class SettingsRepository(context: Context) {
         it[Keys.fuel] = fuel.name
         it[Keys.consumption] = consumption.coerceIn(2.0, 30.0)
         it[Keys.fillLiters] = fillLiters.coerceIn(5.0, 150.0)
+    }
+
+    suspend fun setRangeAlert(enabled: Boolean) = store.edit { it[Keys.rangeAlert] = enabled }
+
+    /** Returns true the first time it is called for a given fill-up (one reserve alert per tank). */
+    suspend fun claimRangeAlert(fillUpId: Long): Boolean {
+        var claimed = false
+        store.edit {
+            if (it[Keys.rangeAlertFillUp] != fillUpId) {
+                it[Keys.rangeAlertFillUp] = fillUpId
+                claimed = true
+            }
+        }
+        return claimed
     }
 
     suspend fun setWeeklyRecap(enabled: Boolean) = store.edit { it[Keys.weeklyRecap] = enabled }

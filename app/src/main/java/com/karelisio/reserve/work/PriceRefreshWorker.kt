@@ -16,6 +16,7 @@ import com.karelisio.reserve.data.model.Station
 import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Geo
+import com.karelisio.reserve.domain.RangeEstimator
 import com.karelisio.reserve.notifications.Notifier
 import java.util.concurrent.TimeUnit
 
@@ -44,8 +45,29 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
                 .isSuccess
         if (!cacheIsFresh) Surfaces.update(applicationContext)
 
+        runCatching { checkRange() }.onFailure { Diagnostics.log("autonomie", "Estimation impossible", it) }
+
         val alertsOk = !settings.alertsEnabled || runCatching { checkAlerts(settings.fuel, settings.alertThreshold, settings.alertDropCents) }.isSuccess
         return if (aroundOk && alertsOk) Result.success() else Result.retry()
+    }
+
+    /** Once per tank: low estimated range, with the cheapest station around. */
+    private suspend fun checkRange() {
+        val app = applicationContext.container
+        val settings = app.settings.current()
+        if (!settings.rangeAlert) return
+        val vehicle = app.vehicles.active() ?: return
+        val fillUps = app.db.fillUps().all().filter { it.vehicleId == vehicle.id }
+        val estimate = RangeEstimator.estimate(fillUps, vehicle.tankCapacity, vehicle.consumption) ?: return
+        if (!estimate.onReserve || !app.settings.claimRangeAlert(estimate.lastFillUpId)) return
+        val best = Surfaces.bestNearby(applicationContext)?.best
+        Notifier.notify(
+            applicationContext, Notifier.CHANNEL_ALERTS, RANGE_NOTIFICATION_ID,
+            title = "Réserve estimée : ≈ ${estimate.remainingKm.toInt()} km",
+            text = best?.let { "Moins cher autour : ${Format.price(it.effectivePrice)} chez ${it.station.displayName}, à ${Format.distance(it.distanceKm)}." }
+                ?: "Pensez à faire le plein.",
+            stationId = best?.station?.id,
+        )
     }
 
     private suspend fun checkAlerts(fuel: Fuel, threshold: Double?, dropCents: Double) {
@@ -126,6 +148,7 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
 
     companion object {
         private const val NAME = "price-refresh"
+        private const val RANGE_NOTIFICATION_ID = 5005
         /** The official feed is refreshed every 10 minutes. */
         private const val FRESH_MS = 20 * 60 * 1000L
 
