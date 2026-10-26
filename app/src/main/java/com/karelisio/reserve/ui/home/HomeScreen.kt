@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karelisio.reserve.data.model.SortMode
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.ui.components.ActiveFilters
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.FuelSelector
 import com.karelisio.reserve.ui.components.InfoBanner
@@ -152,6 +153,9 @@ fun HomeScreen(
                             }
                         }
                     }
+                }
+                item(key = "filters") {
+                    ActiveFilters(state.settings.filters, vm::setFilters, Modifier.fillMaxWidth())
                 }
                 state.error?.let { error ->
                     item(key = "error") {

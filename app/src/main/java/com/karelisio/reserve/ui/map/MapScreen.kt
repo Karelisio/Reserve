@@ -47,6 +47,7 @@ import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.RankedStation
+import com.karelisio.reserve.ui.components.ActiveFilters
 import com.karelisio.reserve.ui.components.FuelSelector
 import com.karelisio.reserve.ui.components.PriceBadge
 import com.karelisio.reserve.ui.components.priceColor
@@ -109,6 +110,7 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit) {
 
         Column(Modifier.statusBarsPadding().padding(top = 8.dp)) {
             FuelSelector(state.settings.fuel, vm::setFuel, Modifier.fillMaxWidth())
+            ActiveFilters(state.settings.filters, vm::setFilters, Modifier.fillMaxWidth().padding(top = 4.dp))
         }
 
         if (state.loading) {
