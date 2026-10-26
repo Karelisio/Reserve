@@ -31,6 +31,14 @@ Package : `com.karelisio.reserve` · minSdk 26 · targetSdk 36 · compileSdk 37
 - Apparence : Système / Clair / Sombre, couleurs dynamiques on/off, noir pur ; écran de démarrage animé.
 - Mise à jour intégrée depuis les Releases GitHub (vérification au lancement, téléchargement de l'APK adapté au téléphone, installation confirmée par Android).
 - Toutes les autorisations demandées au lancement (localisation, notifications, Bluetooth, puis localisation « Toujours » et installation des mises à jour, expliquées avant) ; état et raccourcis dans Réglages → Autorisations.
+- Arrêt sur le trajet : « Via cette station » lance la navigation vers la destination avec la station en étape (Waze, qui ne gère pas les étapes, va d'abord à la station).
+- Recherche par nom ou ville, partage d'une station (prix, adresse, lien OpenStreetMap).
+- Multi-véhicules : carburant, consommation et réservoir par véhicule ; le véhicule actif pilote le vrai coût.
+- Autonomie estimée à partir du carnet (jauge, alerte « sur la réserve »).
+- Récap hebdomadaire (notification le dimanche à 18 h : dépenses, économies, meilleur jour pour faire le plein).
+- Journal de plantage local et « Signaler un problème » (issue GitHub pré-remplie ou partage).
+- Tablette / pliable : barre ou rail de navigation adaptatif, liste + fiche côte à côte à partir de 840 dp.
+- Français et anglais (langue du système ; choix par appli dans Réglages → Apparence sur Android 13+), libellés TalkBack et titres de section.
 - Android Auto (Car App Library, catégorie `androidx.car.app.category.FUEL`) : stations les moins chères sur la carte du véhicule, fiche et lancement de la navigation.
 
 ## Sources de données

@@ -267,7 +267,7 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
                             isBest = item.ranked.station.id == bestId,
                             onClick = { onOpenStation(item.ranked.station.id) },
                             onToggleFavorite = { onToggleFavorite(item.ranked.station) },
-                            detourLabel = t("hors trajet", "off route"),
+                            detourLabel = t("hors trajet", "off-route"),
                         )
                     }
                 }

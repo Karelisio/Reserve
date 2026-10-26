@@ -132,6 +132,18 @@ class ScreenshotTest {
         compose.setContent { ReserveTheme(darkTheme = true, pureBlack = true) { Sample() } }
         capture("list_pure_black")
     }
+
+    @Test
+    fun listEnglish() {
+        val previous = java.util.Locale.getDefault()
+        java.util.Locale.setDefault(java.util.Locale.UK)
+        try {
+            compose.setContent { ReserveTheme(darkTheme = false) { Sample() } }
+            capture("list_english")
+        } finally {
+            java.util.Locale.setDefault(previous)
+        }
+    }
 }
 
 /** Vector resources must inflate (a broken path only fails at runtime otherwise). */

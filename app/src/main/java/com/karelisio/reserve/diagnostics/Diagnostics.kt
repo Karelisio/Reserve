@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import com.karelisio.reserve.BuildConfig
+import com.karelisio.reserve.domain.t
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -65,7 +66,7 @@ object Diagnostics {
         appendLine("**Android** : ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
         appendLine("**Appareil** : ${Build.MANUFACTURER} ${Build.MODEL} · ${Build.SUPPORTED_ABIS.firstOrNull()}")
         appendLine()
-        appendLine("**Description** : (décrivez ce qui s'est passé)")
+        appendLine(t("**Description** : (décrivez ce qui s'est passé)", "**Description**: (describe what happened)"))
         appendLine()
         if (crash != null) {
             appendLine("**Plantage**")
@@ -84,7 +85,11 @@ object Diagnostics {
 
     /** Pre-filled issue on the project repository (the body is shortened to fit in a URL). */
     fun githubIssueIntent(crash: String?): Intent {
-        val title = if (crash != null) "Plantage : ${crash.lineSequence().drop(1).firstOrNull()?.take(80).orEmpty()}" else "Problème : "
+        val title = if (crash != null) {
+            t("Plantage : ", "Crash: ") + crash.lineSequence().drop(1).firstOrNull()?.take(80).orEmpty()
+        } else {
+            t("Problème : ", "Problem: ")
+        }
         val body = report(crash).take(5500)
         val uri = Uri.parse("https://github.com/${BuildConfig.GITHUB_REPO}/issues/new").buildUpon()
             .appendQueryParameter("title", title)
@@ -98,9 +103,12 @@ object Diagnostics {
         Intent.createChooser(
             Intent(Intent.ACTION_SEND)
                 .setType("text/plain")
-                .putExtra(Intent.EXTRA_SUBJECT, "Reserve ${BuildConfig.VERSION_NAME} : rapport de problème")
+                .putExtra(
+                    Intent.EXTRA_SUBJECT,
+                    t("Reserve ${BuildConfig.VERSION_NAME} : rapport de problème", "Reserve ${BuildConfig.VERSION_NAME}: problem report"),
+                )
                 .putExtra(Intent.EXTRA_TEXT, report(crash)),
-            "Envoyer le rapport",
+            t("Envoyer le rapport", "Send the report"),
         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     private fun stackTrace(error: Throwable): String = StringWriter().also { error.printStackTrace(PrintWriter(it)) }.toString()

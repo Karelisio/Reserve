@@ -14,8 +14,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.data.model.ThemeMode
 import com.karelisio.reserve.data.prefs.Settings
@@ -54,6 +59,26 @@ fun AppearanceSection(settings: Settings, onChange: (ThemeMode, dynamicColor: Bo
             caption = t("Fond noir, idéal pour les écrans OLED.", "Black background, ideal for OLED screens."),
             checked = settings.pureBlack,
         ) { haptics.toggle(it); onChange(settings.themeMode, settings.dynamicColor, it) }
+        if (AppLanguage.supported) {
+            val context = LocalContext.current
+            var language by remember { mutableStateOf(AppLanguage.current(context)) }
+            Spacer(Modifier.height(8.dp))
+            Text(t("Langue", "Language"), style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(4.dp))
+            ConnectedChoice(
+                options = AppLanguage.entries,
+                selected = language,
+                label = {
+                    when (it) {
+                        AppLanguage.SYSTEM -> t("Système", "System")
+                        AppLanguage.FRENCH -> "Français"
+                        AppLanguage.ENGLISH -> "English"
+                    }
+                },
+                onSelect = { language = it; AppLanguage.apply(context, it) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 

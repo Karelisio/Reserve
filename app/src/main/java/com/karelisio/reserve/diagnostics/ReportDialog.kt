@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import com.karelisio.reserve.domain.t
 
 /** Report a problem: as a GitHub issue, or shared through any app. [crash] if it follows a crash. */
 @Composable
@@ -21,12 +22,25 @@ fun ReportDialog(crash: String?, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.BugReport, null) },
-        title = { Text(if (crash != null) "Reserve s'est arrêtée" else "Signaler un problème") },
+        title = { Text(if (crash != null) t("Reserve s'est arrêtée", "Reserve stopped") else t("Signaler un problème", "Report a problem")) },
         text = {
             Text(
-                (if (crash != null) "L'appli s'est fermée de façon inattendue lors de la dernière utilisation. " else "") +
-                    "Le rapport contient la version, le modèle du téléphone et les dernières erreurs, sans votre position. " +
-                    "Vous pourrez le relire avant de l'envoyer.",
+                (
+                    if (crash != null) {
+                        t(
+                            "L'appli s'est fermée de façon inattendue lors de la dernière utilisation. ",
+                            "The app closed unexpectedly the last time you used it. ",
+                        )
+                    } else {
+                        ""
+                    }
+                ) +
+                    t(
+                        "Le rapport contient la version, le modèle du téléphone et les dernières erreurs, sans votre position. " +
+                            "Vous pourrez le relire avant de l'envoyer.",
+                        "The report includes the version, the phone model and the latest errors, but not your location. " +
+                            "You can review it before sending it.",
+                    ),
             )
         },
         confirmButton = {
@@ -39,7 +53,7 @@ fun ReportDialog(crash: String?, onDismiss: () -> Unit) {
             TextButton(onClick = {
                 runCatching { context.startActivity(Diagnostics.shareIntent(crash)) }
                 onDismiss()
-            }) { Text("Partager") }
+            }) { Text(t("Partager", "Share")) }
         },
     )
 }

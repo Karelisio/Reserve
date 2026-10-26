@@ -34,10 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karelisio.reserve.BuildConfig
 import com.karelisio.reserve.container
+import com.karelisio.reserve.domain.Lang
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.update.AppUpdate
 import com.karelisio.reserve.update.UpdateState
-import java.util.Locale
 
 /** Shows the in-app update flow: available → download → install. */
 @Composable
@@ -69,11 +70,14 @@ fun UpdateDialog() {
         is UpdateState.Available -> AlertDialog(
             onDismissRequest = updates::dismiss,
             icon = { Icon(Icons.Rounded.SystemUpdate, null) },
-            title = { Text("Mise à jour disponible") },
+            title = { Text(t("Mise à jour disponible", "Update available")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Version ${s.update.versionName} (actuelle : ${BuildConfig.VERSION_NAME})" +
+                        t(
+                            "Version ${s.update.versionName} (actuelle : ${BuildConfig.VERSION_NAME})",
+                            "Version ${s.update.versionName} (current: ${BuildConfig.VERSION_NAME})",
+                        ) +
                             if (s.update.sizeBytes > 0) " · ${megabytes(s.update.sizeBytes)}" else "",
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -87,24 +91,33 @@ fun UpdateDialog() {
                     }
                     if (!updates.canInstallPackages()) {
                         Text(
-                            "Android va vous demander d'autoriser Reserve à installer des applications.",
+                            t(
+                                "Android va vous demander d'autoriser Reserve à installer des applications.",
+                                "Android will ask you to allow Reserve to install apps.",
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { start(s.update) }) { Text("Mettre à jour") } },
-            dismissButton = { TextButton(onClick = updates::dismiss) { Text("Plus tard") } },
+            confirmButton = { TextButton(onClick = { start(s.update) }) { Text(t("Mettre à jour", "Update")) } },
+            dismissButton = { TextButton(onClick = updates::dismiss) { Text(t("Plus tard", "Later")) } },
         )
         is UpdateState.Downloading -> AlertDialog(
             onDismissRequest = {},
             icon = { Icon(Icons.Rounded.SystemUpdate, null) },
-            title = { Text("Téléchargement…") },
+            title = { Text(t("Téléchargement…", "Downloading…")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     LinearWavyProgressIndicator(progress = { s.progress }, modifier = Modifier.fillMaxWidth())
-                    Text("${(s.progress * 100).toInt()} % · version ${s.update.versionName}", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        t(
+                            "${(s.progress * 100).toInt()} % · version ${s.update.versionName}",
+                            "${(s.progress * 100).toInt()}% · version ${s.update.versionName}",
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             },
             confirmButton = {},
@@ -112,33 +125,33 @@ fun UpdateDialog() {
         is UpdateState.Installing -> AlertDialog(
             onDismissRequest = {},
             icon = { Icon(Icons.Rounded.SystemUpdate, null) },
-            title = { Text("Installation…") },
+            title = { Text(t("Installation…", "Installing…")) },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     LoadingIndicator()
-                    Text("Confirmez l'installation dans la fenêtre d'Android.", style = MaterialTheme.typography.bodyMedium)
+                    Text(t("Confirmez l'installation dans la fenêtre d'Android.", "Confirm the installation in the Android prompt."), style = MaterialTheme.typography.bodyMedium)
                 }
             },
-            confirmButton = { TextButton(onClick = updates::dismiss) { Text("Masquer") } },
+            confirmButton = { TextButton(onClick = updates::dismiss) { Text(t("Masquer", "Hide")) } },
         )
         is UpdateState.Failed -> AlertDialog(
             onDismissRequest = updates::dismiss,
             icon = { Icon(Icons.Rounded.ErrorOutline, null) },
-            title = { Text("Mise à jour") },
+            title = { Text(t("Mise à jour", "Update")) },
             text = { Text(s.message) },
             confirmButton = {
                 val update = s.update
-                if (update != null) TextButton(onClick = { start(update) }) { Text("Réessayer") }
+                if (update != null) TextButton(onClick = { start(update) }) { Text(t("Réessayer", "Retry")) }
                 else TextButton(onClick = updates::dismiss) { Text("OK") }
             },
             dismissButton = if (s.update != null) {
-                { TextButton(onClick = updates::dismiss) { Text("Fermer") } }
+                { TextButton(onClick = updates::dismiss) { Text(t("Fermer", "Close")) } }
             } else null,
         )
         UpdateState.UpToDate -> AlertDialog(
             onDismissRequest = updates::dismiss,
             icon = { Icon(Icons.Rounded.CheckCircle, null) },
-            title = { Text("Reserve est à jour") },
+            title = { Text(t("Reserve est à jour", "Reserve is up to date")) },
             text = { Text("Version ${BuildConfig.VERSION_NAME}.") },
             confirmButton = { TextButton(onClick = updates::dismiss) { Text("OK") } },
         )
@@ -146,4 +159,4 @@ fun UpdateDialog() {
     }
 }
 
-private fun megabytes(bytes: Long) = String.format(Locale.FRANCE, "%.1f Mo", bytes / 1_048_576.0)
+private fun megabytes(bytes: Long) = String.format(Lang.locale, t("%.1f Mo", "%.1f MB"), bytes / 1_048_576.0)

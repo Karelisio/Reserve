@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Pricing
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.FuelSelector
 import com.karelisio.reserve.ui.components.InfoBanner
 import com.karelisio.reserve.ui.components.Sparkline
@@ -58,10 +59,17 @@ fun FavoritesScreen(vm: FavoritesViewModel, onOpenStation: (Long) -> Unit, onOpe
         contentWindowInsets = WindowInsets(0),
         topBar = {
             MediumFlexibleTopAppBar(
-                title = { Text("Favoris") },
-                subtitle = { Text("${state.items.size} station${if (state.items.size > 1) "s" else ""} suivie${if (state.items.size > 1) "s" else ""}") },
+                title = { Text(t("Favoris", "Favourites")) },
+                subtitle = {
+                    Text(
+                        t(
+                            "${state.items.size} station${if (state.items.size > 1) "s" else ""} suivie${if (state.items.size > 1) "s" else ""}",
+                            "Following ${state.items.size} station${if (state.items.size != 1) "s" else ""}",
+                        ),
+                    )
+                },
                 actions = {
-                    IconButton(onClick = onOpenAlerts) { Icon(Icons.Rounded.NotificationsActive, contentDescription = "Alertes de prix") }
+                    IconButton(onClick = onOpenAlerts) { Icon(Icons.Rounded.NotificationsActive, contentDescription = t("Alertes de prix", "Price alerts")) }
                 },
                 scrollBehavior = scrollBehavior,
             )
@@ -86,7 +94,7 @@ fun FavoritesScreen(vm: FavoritesViewModel, onOpenStation: (Long) -> Unit, onOpe
                 if (state.offline) {
                     item(key = "offline") {
                         InfoBanner(
-                            "Hors ligne : derniers prix connus.",
+                            t("Hors ligne : derniers prix connus.", "Offline: last known prices."),
                             icon = Icons.Rounded.CloudOff,
                             modifier = Modifier.padding(horizontal = 16.dp),
                         )
@@ -94,7 +102,12 @@ fun FavoritesScreen(vm: FavoritesViewModel, onOpenStation: (Long) -> Unit, onOpe
                 }
                 if (state.items.isEmpty() && !state.loading) {
                     item(key = "empty") {
-                        EmptyState("Aucun favori. Touchez le cœur d'une station pour suivre ses prix et recevoir des alertes.")
+                        EmptyState(
+                            t(
+                                "Aucun favori. Touchez le cœur d'une station pour suivre ses prix et recevoir des alertes.",
+                                "No favourites yet. Tap a station's heart to follow its prices and get alerts.",
+                            ),
+                        )
                     }
                 }
                 items(state.items, key = { it.station.id }) { item ->
@@ -142,7 +155,7 @@ private fun FavoriteCard(item: FavoriteItem, onClick: () -> Unit, onRemove: () -
                         Text(Format.age(it.updatedAt), style = MaterialTheme.typography.labelSmall)
                     }
                 }
-                IconButton(onClick = onRemove) { Icon(Icons.Rounded.Delete, contentDescription = "Retirer des favoris") }
+                IconButton(onClick = onRemove) { Icon(Icons.Rounded.Delete, contentDescription = t("Retirer des favoris", "Remove from favourites")) }
             }
             if (item.history.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
@@ -163,7 +176,7 @@ private fun FavoriteCard(item: FavoriteItem, onClick: () -> Unit, onRemove: () -
             val price = item.price
             if (price != null && System.currentTimeMillis() - price.updatedAt > Pricing.STALE_AFTER_MS) {
                 Text(
-                    "Prix de plus de 3 jours",
+                    t("Prix de plus de 3 jours", "Price over 3 days old"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.padding(top = 4.dp),

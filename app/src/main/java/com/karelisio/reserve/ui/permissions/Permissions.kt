@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.karelisio.reserve.container
+import com.karelisio.reserve.domain.t
 import kotlinx.coroutines.launch
 
 object AppPermissions {
@@ -116,11 +117,15 @@ fun LaunchPermissions(onLocationResult: (Boolean) -> Unit, onDone: () -> Unit) {
         Step.BACKGROUND -> AlertDialog(
             onDismissRequest = {},
             icon = { Icon(Icons.Rounded.MyLocation, null) },
-            title = { Text("Localisation « Toujours »") },
+            title = { Text(t("Localisation « Toujours »", "“Always” location")) },
             text = {
                 Text(
-                    "Pour l'alerte en voiture, le widget et les alertes de prix, Reserve a besoin de votre position " +
-                        "même quand l'appli est fermée. Choisissez « Toujours autoriser » à l'écran suivant.",
+                    t(
+                        "Pour l'alerte en voiture, le widget et les alertes de prix, Reserve a besoin de votre position " +
+                            "même quand l'appli est fermée. Choisissez « Toujours autoriser » à l'écran suivant.",
+                        "For the in-car alert, the widget and price alerts, Reserve needs your location " +
+                            "even when the app is closed. Choose “Allow all the time” on the next screen.",
+                    ),
                 )
             },
             confirmButton = {
@@ -132,23 +137,27 @@ fun LaunchPermissions(onLocationResult: (Boolean) -> Unit, onDone: () -> Unit) {
                     } else {
                         step = Step.INSTALL
                     }
-                }) { Text("Continuer") }
+                }) { Text(t("Continuer", "Continue")) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     scope.launch { settings.setAsked(background = true) }
                     step = Step.INSTALL
-                }) { Text("Plus tard") }
+                }) { Text(t("Plus tard", "Later")) }
             },
         )
         Step.INSTALL -> AlertDialog(
             onDismissRequest = {},
             icon = { Icon(Icons.Rounded.InstallMobile, null) },
-            title = { Text("Mises à jour intégrées") },
+            title = { Text(t("Mises à jour intégrées", "Built-in updates")) },
             text = {
                 Text(
-                    "Reserve se met à jour depuis ses versions publiées sur GitHub. Autorisez l'installation " +
-                        "d'applications pour Reserve à l'écran suivant, puis revenez.",
+                    t(
+                        "Reserve se met à jour depuis ses versions publiées sur GitHub. Autorisez l'installation " +
+                            "d'applications pour Reserve à l'écran suivant, puis revenez.",
+                        "Reserve updates itself from its releases published on GitHub. Allow Reserve to install " +
+                            "apps on the next screen, then come back.",
+                    ),
                 )
             },
             confirmButton = {
@@ -156,13 +165,13 @@ fun LaunchPermissions(onLocationResult: (Boolean) -> Unit, onDone: () -> Unit) {
                     scope.launch { settings.setAsked(background = false) }
                     explain = false
                     installLauncher.launch(AppPermissions.installSettingsIntent(context))
-                }) { Text("Autoriser") }
+                }) { Text(t("Autoriser", "Allow")) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     scope.launch { settings.setAsked(background = false) }
                     step = Step.DONE
-                }) { Text("Plus tard") }
+                }) { Text(t("Plus tard", "Later")) }
             },
         )
         else -> Unit

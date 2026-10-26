@@ -58,6 +58,7 @@ import com.karelisio.reserve.data.charging.Plug
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Geo
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.InfoBanner
 import com.karelisio.reserve.ui.components.Tag
 import com.karelisio.reserve.ui.components.rememberHaptics
@@ -80,7 +81,7 @@ fun ChargingScreen(vm: ChargingViewModel, onBack: () -> Unit) {
     fun go(station: ChargingStation, app: NavApp) {
         haptics.confirm()
         if (!Navigator.navigate(context, station.position.lat, station.position.lon, station.name, app)) {
-            Toast.makeText(context, "Aucune application de navigation trouvée", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, t("Aucune application de navigation trouvée", "No navigation app found"), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -88,10 +89,10 @@ fun ChargingScreen(vm: ChargingViewModel, onBack: () -> Unit) {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             MediumFlexibleTopAppBar(
-                title = { Text("Bornes de recharge") },
-                subtitle = { Text("${state.stations.size} autour de vous · ${state.radiusKm} km") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Retour") } },
-                actions = { IconButton(onClick = { haptics.confirm(); vm.refresh() }) { Icon(Icons.Rounded.Refresh, "Actualiser") } },
+                title = { Text(t("Bornes de recharge", "EV charging stations")) },
+                subtitle = { Text(t("${state.stations.size} autour de vous · ${state.radiusKm} km", "${state.stations.size} around you · ${state.radiusKm} km")) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, t("Retour", "Back")) } },
+                actions = { IconButton(onClick = { haptics.confirm(); vm.refresh() }) { Icon(Icons.Rounded.Refresh, t("Actualiser", "Refresh")) } },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -109,7 +110,7 @@ fun ChargingScreen(vm: ChargingViewModel, onBack: () -> Unit) {
                     FilterChip(
                         selected = state.filters.fastOnly,
                         onClick = { haptics.tick(); vm.setFastOnly(!state.filters.fastOnly) },
-                        label = { Text("Rapide ≥ 50 kW") },
+                        label = { Text(t("Rapide ≥ 50 kW", "Fast ≥ 50 kW")) },
                         leadingIcon = { Icon(Icons.Rounded.Bolt, null, Modifier.size(18.dp)) },
                     )
                     Plug.entries.filter { it != Plug.DOMESTIC }.forEach { plug ->
@@ -122,7 +123,7 @@ fun ChargingScreen(vm: ChargingViewModel, onBack: () -> Unit) {
                     FilterChip(
                         selected = state.filters.freeOnly,
                         onClick = { haptics.tick(); vm.setFreeOnly(!state.filters.freeOnly) },
-                        label = { Text("Gratuit") },
+                        label = { Text(t("Gratuit", "Free")) },
                     )
                 }
             }
@@ -157,7 +158,14 @@ fun ChargingScreen(vm: ChargingViewModel, onBack: () -> Unit) {
                     )
                 }
                 if (state.stations.isEmpty()) {
-                    item(key = "empty") { EmptyState("Aucune borne ne correspond à ces critères dans un rayon de ${state.radiusKm} km.") }
+                    item(key = "empty") {
+                        EmptyState(
+                            t(
+                                "Aucune borne ne correspond à ces critères dans un rayon de ${state.radiusKm} km.",
+                                "No charging station matches these criteria within ${state.radiusKm} km.",
+                            ),
+                        )
+                    }
                 }
                 val ordered = state.stations.sortedByDescending { it.id == selectedId }
                 items(ordered, key = { it.id }) { station ->
@@ -249,25 +257,25 @@ private fun ChargingCard(
                 Text(
                     listOfNotNull(
                         distanceKm?.let { Format.distance(it) },
-                        station.maxPowerKw?.let { "jusqu'à ${Format.number(it, 0)} kW" },
-                        station.points?.let { "$it point${if (it > 1) "s" else ""}" },
+                        station.maxPowerKw?.let { t("jusqu'à ${Format.number(it, 0)} kW", "up to ${Format.number(it, 0)} kW") },
+                        station.points?.let { t("$it point${if (it > 1) "s" else ""}", "$it charge point${if (it != 1) "s" else ""}") },
                     ).joinToString(" · "),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
                     station.plugs.forEach { Tag(it.label, colors.secondaryContainer, colors.onSecondaryContainer) }
                     when (station.free) {
-                        true -> Tag("Gratuit", colors.primaryContainer, colors.onPrimaryContainer)
-                        false -> Tag("Payant", colors.surfaceContainerHighest, colors.onSurface)
+                        true -> Tag(t("Gratuit", "Free"), colors.primaryContainer, colors.onPrimaryContainer)
+                        false -> Tag(t("Payant", "Paid"), colors.surfaceContainerHighest, colors.onSurface)
                         null -> Unit
                     }
-                    if (station.open24) Tag("24/24", colors.surfaceContainerHighest, colors.onSurface)
+                    if (station.open24) Tag(t("24/24", "24/7"), colors.surfaceContainerHighest, colors.onSurface)
                 }
                 station.pricing?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
-            FilledTonalIconButton(onClick = onGo) { Icon(Icons.Rounded.Directions, contentDescription = "Y aller") }
+            FilledTonalIconButton(onClick = onGo) { Icon(Icons.Rounded.Directions, contentDescription = t("Y aller", "Go there")) }
         }
     }
 }

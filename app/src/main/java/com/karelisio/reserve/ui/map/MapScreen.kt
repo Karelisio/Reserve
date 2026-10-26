@@ -72,7 +72,7 @@ fun rememberMarkers(stations: List<RankedStation>, range: ClosedFloatingPointRan
             MapMarker(
                 id = item.station.id,
                 position = LatLon(item.station.lat, item.station.lon),
-                label = String.format(java.util.Locale.FRANCE, "%.3f", item.effectivePrice),
+                label = String.format(com.karelisio.reserve.domain.Lang.locale, "%.3f", item.effectivePrice),
                 color = color.toArgb(),
                 textColor = PriceColors.onColor(color).toArgb(),
                 rank = rank,

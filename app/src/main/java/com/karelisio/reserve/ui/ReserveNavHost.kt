@@ -51,6 +51,7 @@ import androidx.navigation.toRoute
 import com.karelisio.reserve.Shortcuts
 import com.karelisio.reserve.container
 import com.karelisio.reserve.diagnostics.PendingCrashDialog
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.charging.ChargingScreen
 import com.karelisio.reserve.ui.charging.ChargingViewModel
 import com.karelisio.reserve.ui.components.rememberHaptics
@@ -82,14 +83,15 @@ import kotlinx.serialization.Serializable
 @Serializable object ChargingRoute
 @Serializable data class StationRoute(val id: Long)
 
-private data class TopLevel(val route: Any, val label: String, val icon: ImageVector)
+/** [label] is read when displayed, so it follows the app language. */
+private data class TopLevel(val route: Any, val label: () -> String, val icon: ImageVector)
 
 private val topLevels = listOf(
-    TopLevel(HomeRoute, "Autour", Icons.AutoMirrored.Rounded.FormatListBulleted),
-    TopLevel(MapRoute, "Carte", Icons.Rounded.Map),
-    TopLevel(TripRoute, "Trajet", Icons.Rounded.Route),
-    TopLevel(FavoritesRoute, "Favoris", Icons.Rounded.Favorite),
-    TopLevel(FuelLogRoute, "Carnet", Icons.Rounded.LocalGasStation),
+    TopLevel(HomeRoute, { t("Autour", "Nearby") }, Icons.AutoMirrored.Rounded.FormatListBulleted),
+    TopLevel(MapRoute, { t("Carte", "Map") }, Icons.Rounded.Map),
+    TopLevel(TripRoute, { t("Trajet", "Trip") }, Icons.Rounded.Route),
+    TopLevel(FavoritesRoute, { t("Favoris", "Favourites") }, Icons.Rounded.Favorite),
+    TopLevel(FuelLogRoute, { t("Carnet", "Log") }, Icons.Rounded.LocalGasStation),
 )
 
 @Composable
@@ -180,7 +182,7 @@ fun ReserveNavHost(
                         }
                     },
                     icon = { Icon(top.icon, null) },
-                    label = { Text(top.label) },
+                    label = { Text(top.label()) },
                 )
             }
         },
@@ -270,7 +272,7 @@ private fun ListDetail(openStation: (Long) -> Unit, list: @Composable (onOpen: (
                 val id = selected
                 if (id == null) {
                     Text(
-                        "Choisissez une station pour voir sa fiche",
+                        t("Choisissez une station pour voir sa fiche", "Choose a station to see its details"),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

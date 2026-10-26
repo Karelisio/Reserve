@@ -42,6 +42,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -93,9 +95,13 @@ fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highl
             .background(animated, shape),
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        val label = String.format(com.karelisio.reserve.domain.Lang.locale, "%.3f", price)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.clearAndSetSemantics { contentDescription = t("$label euros le litre", "$label euros per litre") },
+        ) {
             Text(
-                text = String.format(java.util.Locale.FRANCE, "%.3f", price),
+                text = label,
                 style = MaterialTheme.typography.titleLargeEmphasized,
                 color = PriceColors.onColor(animated),
                 maxLines = 1,

@@ -9,6 +9,7 @@ import com.karelisio.reserve.data.charging.ChargingStation
 import com.karelisio.reserve.data.charging.Plug
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.NavApp
+import com.karelisio.reserve.domain.t
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -59,12 +60,12 @@ class ChargingViewModel(private val app: AppContainer) : ViewModel() {
         val settings = app.settings.current()
         val origin = app.location.current() ?: settings.lastLocation ?: app.stations.lastResult.value?.center
         if (origin == null) {
-            data.value = data.value.copy(loading = false, error = "Position indisponible. Activez la localisation.")
+            data.value = data.value.copy(loading = false, error = t("Position indisponible. Activez la localisation.", "Location unavailable. Turn on location."))
             return@launch
         }
         data.value = runCatching { repository.around(origin, settings.radiusKm.toDouble()) }.fold(
             onSuccess = { ChargingUiState(loading = false, result = it, origin = origin, radiusKm = settings.radiusKm) },
-            onFailure = { data.value.copy(loading = false, error = "Impossible de charger les bornes. Vérifiez la connexion.", origin = origin) },
+            onFailure = { data.value.copy(loading = false, error = t("Impossible de charger les bornes. Vérifiez la connexion.", "Couldn't load charging stations. Check your connection."), origin = origin) },
         )
     }
 
