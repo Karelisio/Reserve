@@ -13,5 +13,6 @@ class ReserveApp : Application() {
         container = AppContainer(this)
         Notifier.createChannels(this)
         PriceRefreshWorker.schedule(this)
+        Shortcuts.publish(this)
     }
 }

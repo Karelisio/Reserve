@@ -124,3 +124,28 @@ class ScreenshotTest {
         capture("list_pure_black")
     }
 }
+
+/** Vector resources must inflate (a broken path only fails at runtime otherwise). */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [35], application = Application::class)
+class DrawablesTest {
+    @Test
+    fun vectorsInflate() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<Application>()
+        listOf(
+            com.karelisio.reserve.R.drawable.ic_shortcut_around,
+            com.karelisio.reserve.R.drawable.ic_shortcut_map,
+            com.karelisio.reserve.R.drawable.ic_shortcut_trip,
+            com.karelisio.reserve.R.drawable.ic_shortcut_fillup,
+            com.karelisio.reserve.R.drawable.ic_launcher_foreground,
+            com.karelisio.reserve.R.drawable.ic_stat_reserve,
+            com.karelisio.reserve.R.drawable.splash_gauge,
+        ).forEach { id ->
+            val drawable = androidx.core.content.ContextCompat.getDrawable(context, id)!!
+            val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
+            drawable.setBounds(0, 0, 96, 96)
+            drawable.draw(android.graphics.Canvas(bitmap))
+        }
+    }
+}

@@ -59,10 +59,16 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
-fun FuelLogScreen(vm: FuelLogViewModel) {
+fun FuelLogScreen(vm: FuelLogViewModel, startAdding: Boolean = false, onStartAddingHandled: () -> Unit = {}) {
     val state by vm.state.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
     var adding by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(startAdding) {
+        if (startAdding) {
+            adding = true
+            onStartAddingHandled()
+        }
+    }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(

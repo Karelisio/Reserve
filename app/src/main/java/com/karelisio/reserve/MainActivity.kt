@@ -24,6 +24,7 @@ import com.karelisio.reserve.ui.theme.ReserveTheme
 class MainActivity : ComponentActivity() {
 
     private var openStationId by mutableStateOf<Long?>(null)
+    private var openDestination by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
@@ -50,7 +51,12 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
             ReserveTheme(darkTheme = dark, dynamicColor = current.dynamicColor, pureBlack = current.pureBlack) {
-                ReserveNavHost(openStationId = openStationId, onStationOpened = { openStationId = null })
+                ReserveNavHost(
+                    openStationId = openStationId,
+                    onStationOpened = { openStationId = null },
+                    openDestination = openDestination,
+                    onDestinationOpened = { openDestination = null },
+                )
             }
         }
     }
@@ -63,6 +69,7 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         val id = intent?.getLongExtra(EXTRA_STATION_ID, -1L) ?: -1L
         if (id > 0) openStationId = id
+        intent?.getStringExtra(Shortcuts.EXTRA_DESTINATION)?.let { openDestination = it }
     }
 
     companion object {

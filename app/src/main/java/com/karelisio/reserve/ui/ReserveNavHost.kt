@@ -41,6 +41,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.karelisio.reserve.Shortcuts
 import com.karelisio.reserve.container
 import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.ui.favorites.FavoritesScreen
@@ -81,7 +82,12 @@ private val topLevels = listOf(
 )
 
 @Composable
-fun ReserveNavHost(openStationId: Long?, onStationOpened: () -> Unit) {
+fun ReserveNavHost(
+    openStationId: Long?,
+    onStationOpened: () -> Unit,
+    openDestination: String? = null,
+    onDestinationOpened: () -> Unit = {},
+) {
     val nav = rememberNavController()
     val haptics = rememberHaptics()
     val backStack by nav.currentBackStackEntryAsState()
@@ -100,6 +106,23 @@ fun ReserveNavHost(openStationId: Long?, onStationOpened: () -> Unit) {
     }
 
     val openStation: (Long) -> Unit = { id -> nav.navigate(StationRoute(id)) }
+
+    // App shortcuts (long press on the icon).
+    var addFillUp by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(openDestination) {
+        val route: Any = when (openDestination) {
+            Shortcuts.AROUND -> HomeRoute
+            Shortcuts.MAP -> MapRoute
+            Shortcuts.TRIP -> TripRoute
+            Shortcuts.FILL_UP -> FuelLogRoute.also { addFillUp = true }
+            else -> return@LaunchedEffect
+        }
+        nav.navigate(route) {
+            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+        }
+        onDestinationOpened()
+    }
 
     // Every permission is asked at launch, then the app looks for an update.
     LaunchPermissions(
@@ -178,7 +201,7 @@ fun ReserveNavHost(openStationId: Long?, onStationOpened: () -> Unit) {
                 )
             }
             composable<FuelLogRoute> {
-                FuelLogScreen(vm = logVm)
+                FuelLogScreen(vm = logVm, startAdding = addFillUp, onStartAddingHandled = { addFillUp = false })
             }
             composable<FavoritesRoute> {
                 FavoritesScreen(
