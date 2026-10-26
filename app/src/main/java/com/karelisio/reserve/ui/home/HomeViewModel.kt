@@ -19,6 +19,7 @@ import com.karelisio.reserve.domain.Trend
 import com.karelisio.reserve.domain.TrendAnalyzer
 import com.karelisio.reserve.domain.Vehicle
 import com.karelisio.reserve.work.Surfaces
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -72,17 +74,31 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
                 .map { TrendAnalyzer.analyze(it) }
         }
 
+    /**
+     * Ranking up to a thousand stations is done off the main thread, and only when an input
+     * of the ranking changes (not on loading or error updates).
+     */
+    private val ranked = combine(
+        app.settings.settings.distinctUntilChanged { a, b ->
+            a.fuel == b.fuel && a.radiusKm == b.radiusKm && a.sort == b.sort && a.filters == b.filters &&
+                a.consumption == b.consumption && a.fillLiters == b.fillLiters
+        },
+        app.stations.lastResult,
+        cards,
+    ) { settings, result, cards -> rank(settings, result, cards) }
+        .flowOn(Dispatchers.Default)
+
     val state: StateFlow<HomeUiState> = combine(
         app.settings.settings,
         app.stations.lastResult,
         app.db.favorites().observeIds(),
-        cards,
+        ranked,
         combine(transient, trend) { t, tr -> t to tr },
-    ) { settings, result, favorites, cards, (t, trend) ->
+    ) { settings, result, favorites, stations, (t, trend) ->
         HomeUiState(
             settings = settings,
             result = result,
-            stations = rank(settings, result, cards),
+            stations = stations,
             loading = t.loading,
             error = t.error,
             needsLocationPermission = t.needsPermission,

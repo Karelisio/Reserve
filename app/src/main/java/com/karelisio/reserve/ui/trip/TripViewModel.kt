@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -67,20 +68,24 @@ class TripViewModel(private val app: AppContainer) : ViewModel() {
     private val status = MutableStateFlow<Pair<Boolean, String?>>(false to null)
     private var job: Job? = null
 
+    private val corridorStations = combine(data, app.settings.settings, app.db.loyaltyCards().observeAll()) { data, settings, cards ->
+        data?.let { rankCorridor(it, settings, cards) }.orEmpty()
+    }.flowOn(Dispatchers.Default)
+
     val state: StateFlow<TripUiState> = combine(
         combine(query, suggestions) { q, s -> q to s },
         data,
         status,
         app.settings.settings,
-        app.db.loyaltyCards().observeAll(),
-    ) { (q, s), data, (loading, error), settings, cards ->
+        corridorStations,
+    ) { (q, s), data, (loading, error), settings, stations ->
         TripUiState(
             query = q,
             suggestions = s,
             destination = data?.destination,
             origin = data?.origin,
             route = data?.route,
-            stations = data?.let { rankCorridor(it, settings, cards) }.orEmpty(),
+            stations = stations,
             loading = loading,
             error = error,
             settings = settings,

@@ -9,6 +9,8 @@ import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.domain.Vehicle
 import com.karelisio.reserve.tile.BestPriceTileService
 import com.karelisio.reserve.widget.ReserveWidget
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Snapshot shown outside the app: widget, quick settings tile, Android Auto. */
 data class BestNearby(
@@ -22,7 +24,9 @@ data class BestNearby(
 object Surfaces {
 
     /** Cheapest stations around the last search, with the user's settings and cards. */
-    suspend fun bestNearby(context: Context): BestNearby? {
+    suspend fun bestNearby(context: Context): BestNearby? = withContext(Dispatchers.Default) { computeBestNearby(context) }
+
+    private suspend fun computeBestNearby(context: Context): BestNearby? {
         val app = context.container
         val result = app.stations.loadCache() ?: return null
         val settings = app.settings.current()

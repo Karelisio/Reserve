@@ -8,10 +8,28 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import androidx.core.graphics.createBitmap
+import com.karelisio.reserve.container
+import org.maplibre.android.MapLibre
+import org.maplibre.android.module.http.HttpRequestUtil
 import java.util.Locale
 
 /** MapLibre style using OpenStreetMap raster tiles, tuned to the light or dark theme. */
 object MapStyle {
+
+    @Volatile
+    private var initialized = false
+
+    /** MapLibre is started on first use of a map, not at app launch (faster startup). */
+    fun ensureInitialized(context: Context) {
+        if (initialized) return
+        synchronized(this) {
+            if (initialized) return
+            MapLibre.getInstance(context.applicationContext)
+            // Tiles are fetched with the app User-Agent, as required by the OSM tile policy.
+            HttpRequestUtil.setOkHttpClient(context.container.http)
+            initialized = true
+        }
+    }
 
     fun json(dark: Boolean, background: Int): String {
         val bg = String.format(Locale.ROOT, "#%06X", background and 0xFFFFFF)

@@ -10,7 +10,9 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.karelisio.reserve.container
 import com.karelisio.reserve.data.model.Fuel
+import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.notifications.Notifier
 import java.util.concurrent.TimeUnit
 
@@ -24,10 +26,18 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
         val app = applicationContext.container
         val settings = app.settings.current()
 
-        val center = runCatching { app.location.current(timeoutMs = 8_000) }.getOrNull()?.also { app.settings.setLastLocation(it) }
+        // Battery: no GPS fix in the background, only the position other apps already obtained.
+        val center = runCatching { app.location.lastKnown() }.getOrNull()
+            ?.let { LatLon(it.latitude, it.longitude) }
+            ?.also { app.settings.setLastLocation(it) }
             ?: settings.lastLocation
-        val aroundOk = center == null || runCatching { app.stations.searchAround(center, settings.radiusKm) }.isSuccess
-        Surfaces.update(applicationContext)
+        val cached = app.stations.loadCache()
+        val cacheIsFresh = cached != null && center != null &&
+            System.currentTimeMillis() - cached.fetchedAt < FRESH_MS &&
+            Geo.distanceKm(cached.center, center) < 1.0 && cached.radiusKm >= settings.radiusKm
+        val aroundOk = center == null || cacheIsFresh ||
+            runCatching { app.stations.searchAround(center, settings.radiusKm) }.isSuccess
+        if (!cacheIsFresh) Surfaces.update(applicationContext)
 
         val alertsOk = !settings.alertsEnabled || runCatching { checkAlerts(settings.fuel, settings.alertThreshold, settings.alertDropCents) }.isSuccess
         return if (aroundOk && alertsOk) Result.success() else Result.retry()
@@ -74,10 +84,17 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
 
     companion object {
         private const val NAME = "price-refresh"
+        /** The official feed is refreshed every 10 minutes. */
+        private const val FRESH_MS = 20 * 60 * 1000L
 
         fun schedule(context: Context) {
             val request = PeriodicWorkRequestBuilder<PriceRefreshWorker>(1, TimeUnit.HOURS, 15, TimeUnit.MINUTES)
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .setRequiresBatteryNotLow(true)
+                        .build(),
+                )
                 .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
         }

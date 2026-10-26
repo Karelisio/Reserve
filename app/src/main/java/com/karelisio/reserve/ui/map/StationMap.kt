@@ -25,6 +25,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.ui.theme.isDarkColors
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
@@ -89,7 +91,10 @@ fun StationMap(
     val primary = colors.primary.toArgb()
     val onPrimary = colors.onPrimary.toArgb()
 
-    val mapView = remember { MapView(context).apply { onCreate(null) } }
+    val mapView = remember {
+        MapStyle.ensureInitialized(context)
+        MapView(context).apply { onCreate(null) }
+    }
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
     var style by remember { mutableStateOf<Style?>(null) }
     val markerImages = remember { mutableSetOf<String>() }
@@ -217,11 +222,14 @@ fun StationMap(
         val s = style ?: return@LaunchedEffect
         val wanted = markers.filter { it.showLabel }.associateBy { "price-${it.id}-${it.label}-${it.color}" }
         (markerImages - wanted.keys).forEach { s.removeImage(it); markerImages.remove(it) }
-        wanted.forEach { (key, m) ->
-            if (key !in markerImages) {
-                s.addImage(key, MapStyle.priceMarker(context, m.label, m.color, m.textColor, surface))
-                markerImages += key
-            }
+        // Draw the new price pills off the main thread, then hand them to the map at once.
+        val missing = wanted.filterKeys { it !in markerImages }
+        val bitmaps = withContext(Dispatchers.Default) {
+            missing.mapValues { (_, m) -> MapStyle.priceMarker(context, m.label, m.color, m.textColor, surface) }
+        }
+        if (bitmaps.isNotEmpty()) {
+            s.addImages(HashMap(bitmaps))
+            markerImages += bitmaps.keys
         }
         val features = buildJsonArray {
             markers.forEach { m ->

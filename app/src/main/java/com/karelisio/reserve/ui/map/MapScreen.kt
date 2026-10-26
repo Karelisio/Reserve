@@ -56,25 +56,34 @@ import com.karelisio.reserve.ui.home.HomeViewModel
 import com.karelisio.reserve.ui.station.NavAppSheet
 import com.karelisio.reserve.ui.station.Navigator
 import com.karelisio.reserve.ui.theme.PriceColors
+import com.karelisio.reserve.ui.theme.isDarkColors
 
 /** Builds map markers colored from cheapest (green) to most expensive (red). */
 @Composable
 fun rememberMarkers(stations: List<RankedStation>, range: ClosedFloatingPointRange<Double>?, maxLabels: Int = 60): List<MapMarker> {
     val outOfStock = MaterialTheme.colorScheme.outline
-    val byPrice = remember(stations) { stations.sortedBy { if (it.outOfStock) Double.MAX_VALUE else it.effectivePrice } }
-    return byPrice.mapIndexed { rank, item ->
-        val color = if (item.outOfStock) outOfStock else priceColor(item.effectivePrice, range)
-        MapMarker(
-            id = item.station.id,
-            position = LatLon(item.station.lat, item.station.lon),
-            label = String.format(java.util.Locale.FRANCE, "%.3f", item.effectivePrice),
-            color = color.toArgb(),
-            textColor = PriceColors.onColor(color).toArgb(),
-            rank = rank,
-            showLabel = rank < maxLabels && !item.outOfStock,
-        )
+    val primary = MaterialTheme.colorScheme.primary
+    val dark = isDarkColors
+    // Recomputed only when the stations or the theme change, not on every recomposition.
+    return remember(stations, range, outOfStock, primary, dark) {
+        stations.sortedBy { if (it.outOfStock) Double.MAX_VALUE else it.effectivePrice }.mapIndexed { rank, item ->
+            val color = if (item.outOfStock) outOfStock else PriceColors.scale(fraction(item.effectivePrice, range), primary, dark)
+            MapMarker(
+                id = item.station.id,
+                position = LatLon(item.station.lat, item.station.lon),
+                label = String.format(java.util.Locale.FRANCE, "%.3f", item.effectivePrice),
+                color = color.toArgb(),
+                textColor = PriceColors.onColor(color).toArgb(),
+                rank = rank,
+                showLabel = rank < maxLabels && !item.outOfStock,
+            )
+        }
     }
 }
+
+private fun fraction(price: Double, range: ClosedFloatingPointRange<Double>?): Float =
+    if (range == null || range.endInclusive - range.start < 0.0005) 0f
+    else ((price - range.start) / (range.endInclusive - range.start)).toFloat()
 
 @Composable
 fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit) {

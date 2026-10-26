@@ -53,19 +53,42 @@ class FuelApi(private val client: OkHttpClient) {
 
     private class Page(val total: Int, val stations: List<Station>)
 
+    /** Only the fields the app reads: about half the payload. Disabled if the API rejects it. */
+    @Volatile
+    private var selectFields = true
+
     private suspend fun page(where: String, offset: Int): Page = concurrency.withPermit {
-        val url = BASE_URL.toHttpUrl().newBuilder()
-            .addQueryParameter("where", where)
-            .addQueryParameter("order_by", "id")
-            .addQueryParameter("limit", PAGE_SIZE.toString())
-            .addQueryParameter("offset", offset.toString())
-            .build()
-        val root = client.getJson(Request.Builder().url(url).build()).obj() ?: return@withPermit Page(0, emptyList())
+        val root = try {
+            fetch(where, offset, selectFields)
+        } catch (e: HttpException) {
+            if (e.code != 400 || !selectFields) throw e
+            selectFields = false
+            fetch(where, offset, select = false)
+        }.obj() ?: return@withPermit Page(0, emptyList())
         val results = root["results"].arr().orEmpty().mapNotNull { (it as? JsonObject)?.let(StationParser::parse) }
         Page(root.lng("total_count")?.toInt() ?: results.size, results)
     }
 
+    private suspend fun fetch(where: String, offset: Int, select: Boolean) = client.getJson(
+        Request.Builder().url(
+            BASE_URL.toHttpUrl().newBuilder()
+                .addQueryParameter("where", where)
+                .addQueryParameter("order_by", "id")
+                .addQueryParameter("limit", PAGE_SIZE.toString())
+                .addQueryParameter("offset", offset.toString())
+                .apply { if (select) addQueryParameter("select", FIELDS) }
+                .build(),
+        ).build(),
+    )
+
     companion object {
+        private val FIELDS = (
+            listOf(
+                "id", "latitude", "longitude", "geom", "cp", "pop", "adresse", "ville", "horaires",
+                "horaires_automate_24_24", "services_service", "carburants_rupture_temporaire", "carburants_rupture_definitive",
+            ) + listOf("gazole", "sp95", "e85", "gplc", "e10", "sp98").flatMap { listOf("${it}_prix", "${it}_maj") }
+            ).joinToString(",")
+
         const val BASE_URL =
             "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records"
         private const val PAGE_SIZE = 100
