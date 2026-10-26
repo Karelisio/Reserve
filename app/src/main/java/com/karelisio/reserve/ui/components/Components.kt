@@ -88,8 +88,7 @@ fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highl
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = String.format(java.util.Locale.FRANCE, "%.3f", price),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLargeEmphasized,
                 color = PriceColors.onColor(animated),
                 maxLines = 1,
             )

@@ -29,6 +29,7 @@ import com.karelisio.reserve.domain.Vehicle
 import com.karelisio.reserve.ui.components.FuelSelector
 import com.karelisio.reserve.ui.components.SourceFooter
 import com.karelisio.reserve.ui.components.StationCard
+import com.karelisio.reserve.ui.home.BestChoiceCard
 import com.karelisio.reserve.ui.home.TrendCard
 import com.karelisio.reserve.ui.theme.ReserveTheme
 import org.junit.Rule
@@ -86,8 +87,9 @@ class ScreenshotTest {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             FuelSelector(Fuel.GAZOLE, {}, Modifier.fillMaxWidth())
+            BestChoiceCard(ranked.first(), onOpen = {}, onGo = {}, modifier = Modifier.padding(horizontal = 16.dp))
             TrendCard(trend, Fuel.GAZOLE, Modifier.padding(horizontal = 16.dp))
-            ranked.forEach { item ->
+            ranked.drop(1).forEach { item ->
                 StationCard(
                     item = item, priceRange = range, isFavorite = item.station.id == 2L, sort = SortMode.REAL_COST,
                     isBest = item == ranked.first(), onClick = {}, onToggleFavorite = {},
@@ -111,8 +113,14 @@ class ScreenshotTest {
     }
 
     @Test
-    fun listDark() {
-        compose.setContent { ReserveTheme(darkTheme = true) { Sample() } }
-        capture("list_dark")
+    fun listDarkGreen() {
+        compose.setContent { ReserveTheme(darkTheme = true, dynamicColor = false) { Sample() } }
+        capture("list_dark_green")
+    }
+
+    @Test
+    fun listPureBlack() {
+        compose.setContent { ReserveTheme(darkTheme = true, pureBlack = true) { Sample() } }
+        capture("list_pure_black")
     }
 }

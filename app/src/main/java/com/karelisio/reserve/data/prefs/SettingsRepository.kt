@@ -15,6 +15,7 @@ import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.model.SortMode
+import com.karelisio.reserve.data.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -38,6 +39,11 @@ data class Settings(
     val carDeviceAddress: String? = null,
     val carDeviceName: String? = null,
     val lastLocation: LatLon? = null,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    /** Wallpaper colors (Android 12+); otherwise the green theme. */
+    val dynamicColor: Boolean = true,
+    /** Pure black background in dark mode (OLED screens). */
+    val pureBlack: Boolean = false,
 )
 
 /** Fill-up suggested after "Y aller", until the user logs it or dismisses it. */
@@ -77,6 +83,9 @@ class SettingsRepository(context: Context) {
         val lastUpdateCheck = longPreferencesKey("last_update_check")
         val askedBackground = booleanPreferencesKey("asked_background_location")
         val askedInstall = booleanPreferencesKey("asked_install_packages")
+        val themeMode = stringPreferencesKey("theme_mode")
+        val dynamicColor = booleanPreferencesKey("dynamic_color")
+        val pureBlack = booleanPreferencesKey("pure_black")
     }
 
     val settings: Flow<Settings> = store.data.map { p ->
@@ -101,6 +110,9 @@ class SettingsRepository(context: Context) {
             carDeviceAddress = p[Keys.carAddress],
             carDeviceName = p[Keys.carName],
             lastLocation = p[Keys.lastLat]?.let { lat -> p[Keys.lastLon]?.let { lon -> LatLon(lat, lon) } },
+            themeMode = p[Keys.themeMode]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
+            dynamicColor = p[Keys.dynamicColor] ?: true,
+            pureBlack = p[Keys.pureBlack] ?: false,
         )
     }
 
@@ -131,6 +143,12 @@ class SettingsRepository(context: Context) {
     suspend fun setVehicle(consumption: Double, fillLiters: Double) = store.edit {
         it[Keys.consumption] = consumption.coerceIn(2.0, 30.0)
         it[Keys.fillLiters] = fillLiters.coerceIn(5.0, 150.0)
+    }
+
+    suspend fun setAppearance(mode: ThemeMode, dynamicColor: Boolean, pureBlack: Boolean) = store.edit {
+        it[Keys.themeMode] = mode.name
+        it[Keys.dynamicColor] = dynamicColor
+        it[Keys.pureBlack] = pureBlack
     }
 
     suspend fun setNavApp(app: NavApp) = store.edit { it[Keys.navApp] = app.name }

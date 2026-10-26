@@ -3,12 +3,14 @@ package com.karelisio.reserve.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.karelisio.reserve.AppContainer
+import com.karelisio.reserve.MainActivity
 import com.karelisio.reserve.bluetooth.PairedDevice
 import com.karelisio.reserve.data.local.DiscountUnit
 import com.karelisio.reserve.data.local.LoyaltyCardEntity
 import com.karelisio.reserve.domain.Brand
 import com.karelisio.reserve.work.Surfaces
 import com.karelisio.reserve.data.model.NavApp
+import com.karelisio.reserve.data.model.ThemeMode
 import com.karelisio.reserve.data.prefs.Settings
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +37,11 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
 
     fun setVehicle(consumption: Double, liters: Double) = viewModelScope.launch {
         app.settings.setVehicle(consumption, liters)
+    }
+
+    fun setAppearance(mode: ThemeMode, dynamicColor: Boolean, pureBlack: Boolean) = viewModelScope.launch {
+        app.settings.setAppearance(mode, dynamicColor, pureBlack)
+        MainActivity.applyNightMode(app.context, app.settings.current())
     }
 
     fun setNavApp(navApp: NavApp) = viewModelScope.launch { app.settings.setNavApp(navApp) }

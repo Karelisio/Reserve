@@ -111,6 +111,8 @@ enum class SortMode(val label: String) {
 @Serializable
 enum class NavApp { ASK, WAZE, GOOGLE_MAPS, OTHER }
 
+enum class ThemeMode(val label: String) { SYSTEM("Système"), LIGHT("Clair"), DARK("Sombre") }
+
 @Serializable
 data class Filters(
     val open24: Boolean = false,

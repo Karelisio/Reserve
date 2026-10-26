@@ -81,6 +81,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            AppearanceSection(s, vm::setAppearance)
             VehicleSection(s, vm::setVehicle)
             LoyaltySection(cards, vm::addCard, vm::deleteCard)
             AlertsSection(s, vm::setAlerts)

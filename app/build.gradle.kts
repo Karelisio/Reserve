@@ -95,6 +95,7 @@ ksp {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     // Applies the baseline profiles at install time, also for APKs installed outside the Play Store.
     implementation(libs.androidx.profileinstaller)
     baselineProfile(project(":baselineprofile"))

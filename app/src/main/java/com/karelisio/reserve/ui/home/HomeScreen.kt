@@ -44,16 +44,20 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.model.SortMode
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.ui.components.ActiveFilters
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.FuelSelector
@@ -61,6 +65,8 @@ import com.karelisio.reserve.ui.components.InfoBanner
 import com.karelisio.reserve.ui.components.SourceFooter
 import com.karelisio.reserve.ui.components.StationCard
 import com.karelisio.reserve.ui.components.rememberHaptics
+import com.karelisio.reserve.ui.station.NavAppSheet
+import com.karelisio.reserve.ui.station.Navigator
 
 val LocationPermissions = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
 
@@ -73,6 +79,8 @@ fun HomeScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
     var showFilters by rememberSaveable { mutableStateOf(false) }
+    var navigateTo by remember { mutableStateOf<RankedStation?>(null) }
+    val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         vm.onLocationPermissionResult(it.values.any { granted -> granted })
     }
@@ -112,6 +120,7 @@ fun HomeScreen(
                 )
             },
         ) {
+            val best = state.best
             LazyColumn(
                 contentPadding = PaddingValues(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -164,6 +173,20 @@ fun HomeScreen(
                         )
                     }
                 }
+                if (best != null) {
+                    item(key = "best") {
+                        BestChoiceCard(
+                            item = best,
+                            onOpen = { onOpenStation(best.station.id) },
+                            onGo = {
+                                haptics.confirm()
+                                if (state.settings.navApp == NavApp.ASK) navigateTo = best
+                                else if (Navigator.navigate(context, best.station, state.settings.navApp)) vm.onNavigate(best)
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
+                        )
+                    }
+                }
                 state.trend?.let { trend ->
                     item(key = "trend") {
                         TrendCard(trend, state.settings.fuel, Modifier.padding(horizontal = 16.dp).animateItem())
@@ -190,7 +213,6 @@ fun HomeScreen(
                         )
                     }
                 }
-                val best = state.best
                 items(state.stations, key = { it.station.id }) { item ->
                     StationCard(
                         item = item,
@@ -206,6 +228,16 @@ fun HomeScreen(
                 item(key = "footer") { SourceFooter() }
             }
         }
+    }
+
+    navigateTo?.let { target ->
+        NavAppSheet(
+            onPick = { app ->
+                navigateTo = null
+                if (Navigator.navigate(context, target.station, app)) vm.onNavigate(target)
+            },
+            onDismiss = { navigateTo = null },
+        )
     }
 
     if (showFilters) {
