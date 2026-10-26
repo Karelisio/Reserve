@@ -28,6 +28,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import com.karelisio.reserve.container
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.Tag
 import com.karelisio.reserve.ui.permissions.AppPermissions
 
@@ -53,13 +54,16 @@ fun PermissionsSection() {
     val request = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { refresh++ }
     val openSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { refresh++ }
 
-    SettingsSection("Autorisations") {
-        PermissionRow(Icons.Rounded.LocationOn, "Localisation", "Stations autour de vous", granted.getValue("location")) {
+    SettingsSection(t("Autorisations", "Permissions")) {
+        PermissionRow(
+            Icons.Rounded.LocationOn, t("Localisation", "Location"), t("Stations autour de vous", "Stations around you"),
+            granted.getValue("location"),
+        ) {
             request.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
         }
         if (Build.VERSION.SDK_INT >= 29) {
             PermissionRow(
-                Icons.Rounded.MyLocation, "Localisation « Toujours »", "Alerte en voiture, widget",
+                Icons.Rounded.MyLocation, t("Localisation « Toujours »", "Location “All the time”"), t("Alerte en voiture, widget", "In-car alert, widget"),
                 granted.getValue("background"),
             ) {
                 if (granted.getValue("location")) request.launch(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION))
@@ -68,19 +72,19 @@ fun PermissionsSection() {
         }
         if (Build.VERSION.SDK_INT >= 33) {
             PermissionRow(
-                Icons.Rounded.Notifications, "Notifications", "Alertes de prix",
+                Icons.Rounded.Notifications, "Notifications", t("Alertes de prix", "Price alerts"),
                 granted.getValue("notifications"),
             ) { request.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS)) }
         }
         if (Build.VERSION.SDK_INT >= 31) {
             PermissionRow(
-                Icons.Rounded.Bluetooth, "Bluetooth", "Détecter la voiture",
+                Icons.Rounded.Bluetooth, "Bluetooth", t("Détecter la voiture", "Detect the car"),
                 granted.getValue("bluetooth"),
             ) { request.launch(arrayOf(Manifest.permission.BLUETOOTH_CONNECT)) }
         }
         if (context.container.updates.enabled) {
             PermissionRow(
-                Icons.Rounded.InstallMobile, "Installer les mises à jour", "Mises à jour intégrées",
+                Icons.Rounded.InstallMobile, t("Installer les mises à jour", "Install updates"), t("Mises à jour intégrées", "Built-in updates"),
                 granted.getValue("install"),
             ) { openSettings.launch(AppPermissions.installSettingsIntent(context)) }
         }
@@ -94,9 +98,9 @@ private fun PermissionRow(icon: ImageVector, title: String, usage: String, grant
         supportingContent = { Text(usage) },
         trailingContent = {
             if (granted) {
-                Tag("Accordée", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                Tag(t("Accordée", "Granted"), MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
             } else {
-                TextButton(onClick = onGrant) { Text("Autoriser") }
+                TextButton(onClick = onGrant) { Text(t("Autoriser", "Allow")) }
             }
         },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),

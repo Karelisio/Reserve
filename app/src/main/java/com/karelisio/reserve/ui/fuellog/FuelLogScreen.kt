@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,13 +60,14 @@ import com.karelisio.reserve.container
 import com.karelisio.reserve.data.local.FillUpEntity
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.FuelLogStats
+import com.karelisio.reserve.domain.Lang
 import com.karelisio.reserve.domain.MonthSpend
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.ui.home.EmptyState
 import kotlinx.coroutines.launch
 import java.time.format.TextStyle
-import java.util.Locale
 
 @Composable
 fun FuelLogScreen(vm: FuelLogViewModel, startAdding: Boolean = false, onStartAddingHandled: () -> Unit = {}) {
@@ -87,7 +89,7 @@ fun FuelLogScreen(vm: FuelLogViewModel, startAdding: Boolean = false, onStartAdd
             val ok = runCatching {
                 context.contentResolver.openOutputStream(uri)!!.use { context.container.backup.exportFillUpsCsv(it) }
             }.isSuccess
-            Toast.makeText(context, if (ok) "Carnet exporté" else "Échec de l'export", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, if (ok) t("Carnet exporté", "Log exported") else t("Échec de l'export", "Export failed"), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -96,12 +98,12 @@ fun FuelLogScreen(vm: FuelLogViewModel, startAdding: Boolean = false, onStartAdd
         contentWindowInsets = WindowInsets(0),
         topBar = {
             MediumFlexibleTopAppBar(
-                title = { Text("Carnet de pleins") },
-                subtitle = { Text("Consommation, budget et économies") },
+                title = { Text(t("Carnet de pleins", "Fuel log")) },
+                subtitle = { Text(t("Consommation, budget et économies", "Consumption, budget and savings")) },
                 actions = {
                     if (state.fillUps.isNotEmpty()) {
                         IconButton(onClick = { csvExporter.launch("reserve-carnet-${java.time.LocalDate.now()}.csv") }) {
-                            Icon(Icons.Rounded.TableView, contentDescription = "Exporter en CSV")
+                            Icon(Icons.Rounded.TableView, contentDescription = t("Exporter en CSV", "Export as CSV"))
                         }
                     }
                 },
@@ -112,7 +114,7 @@ fun FuelLogScreen(vm: FuelLogViewModel, startAdding: Boolean = false, onStartAdd
             ExtendedFloatingActionButton(
                 onClick = { haptics.tick(); adding = true },
                 icon = { Icon(Icons.Rounded.Add, null) },
-                text = { Text("Ajouter un plein") },
+                text = { Text(t("Ajouter un plein", "Add a fill-up")) },
             )
         },
     ) { padding ->
@@ -138,7 +140,12 @@ fun FuelLogScreen(vm: FuelLogViewModel, startAdding: Boolean = false, onStartAdd
                 item(key = "chart") { MonthlyChart(stats.months) }
             } else {
                 item(key = "empty") {
-                    EmptyState("Après « Y aller », Reserve vous propose de noter votre plein : litres, prix et kilométrage.")
+                    EmptyState(
+                        t(
+                            "Après « Y aller », Reserve vous propose de noter votre plein : litres, prix et kilométrage.",
+                            "After “Go there”, Reserve offers to log your fill-up: litres, price and odometer.",
+                        ),
+                    )
                 }
             }
             items(state.fillUps, key = { it.id }) { fillUp ->
@@ -161,23 +168,23 @@ fun FuelLogScreen(vm: FuelLogViewModel, startAdding: Boolean = false, onStartAdd
 private fun StatsRow(stats: FuelLogStats) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         StatCard(
-            "Conso réelle",
+            t("Conso réelle", "Real consumption"),
             stats.consumption?.let { "${Format.number(it)} L" } ?: "—",
-            stats.distanceKm?.let { "sur $it km" } ?: "2 pleins complets requis",
+            stats.distanceKm?.let { t("sur $it km", "over $it km") } ?: t("2 pleins complets requis", "2 full tanks needed"),
             MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer,
             Modifier.weight(1f),
         )
         StatCard(
-            "Ce mois-ci",
+            t("Ce mois-ci", "This month"),
             Format.euros(stats.thisMonth),
             "Total ${Format.euros(stats.totalSpent)}",
             MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer,
             Modifier.weight(1f),
         )
         StatCard(
-            "Économies",
+            t("Économies", "Savings"),
             Format.signedEuros(stats.savings),
-            "vs prix moyen local",
+            t("vs prix moyen local", "vs local average price"),
             MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer,
             Modifier.weight(1f),
         )
@@ -212,11 +219,16 @@ private fun MonthlyChart(months: List<MonthSpend>) {
         shape = MaterialTheme.shapes.large,
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text("Budget carburant", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                t("Budget carburant", "Fuel budget"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() },
+            )
             Spacer(Modifier.height(12.dp))
             Canvas(
                 Modifier.fillMaxWidth().height(110.dp).semantics {
-                    contentDescription = months.joinToString { "${it.month.month.getDisplayName(TextStyle.FULL, Locale.FRANCE)} ${Format.euros(it.total)}" }
+                    contentDescription = months.joinToString { "${it.month.month.getDisplayName(TextStyle.FULL, Lang.locale)} ${Format.euros(it.total)}" }
                 },
             ) {
                 val slot = size.width / months.size
@@ -235,7 +247,7 @@ private fun MonthlyChart(months: List<MonthSpend>) {
                 months.forEach { m ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            m.month.month.getDisplayName(TextStyle.SHORT, Locale.FRANCE),
+                            m.month.month.getDisplayName(TextStyle.SHORT, Lang.locale),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.Center,
                         )
@@ -264,7 +276,10 @@ private fun FillUpRow(fillUp: FillUpEntity, onDelete: () -> Unit, modifier: Modi
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "${Format.liters(fillUp.liters)} à ${Format.price(fillUp.pricePerLiter)}" + if (!fillUp.fullTank) " · partiel" else "",
+                    t(
+                        "${Format.liters(fillUp.liters)} à ${Format.price(fillUp.pricePerLiter)}",
+                        "${Format.liters(fillUp.liters)} at ${Format.price(fillUp.pricePerLiter)}",
+                    ) + if (!fillUp.fullTank) t(" · partiel", " · partial") else "",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -279,7 +294,7 @@ private fun FillUpRow(fillUp: FillUpEntity, onDelete: () -> Unit, modifier: Modi
                     )
                 }
             }
-            IconButton(onClick = onDelete) { Icon(Icons.Rounded.Delete, contentDescription = "Supprimer") }
+            IconButton(onClick = onDelete) { Icon(Icons.Rounded.Delete, contentDescription = t("Supprimer", "Delete")) }
         }
     }
 }

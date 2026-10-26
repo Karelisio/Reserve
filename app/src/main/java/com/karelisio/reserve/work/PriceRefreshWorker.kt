@@ -17,6 +17,7 @@ import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.domain.RangeEstimator
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.notifications.Notifier
 import java.util.concurrent.TimeUnit
 
@@ -63,9 +64,13 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
         val best = Surfaces.bestNearby(applicationContext)?.best
         Notifier.notify(
             applicationContext, Notifier.CHANNEL_ALERTS, RANGE_NOTIFICATION_ID,
-            title = "Réserve estimée : ≈ ${estimate.remainingKm.toInt()} km",
-            text = best?.let { "Moins cher autour : ${Format.price(it.effectivePrice)} chez ${it.station.displayName}, à ${Format.distance(it.distanceKm)}." }
-                ?: "Pensez à faire le plein.",
+            title = t("Réserve estimée : ≈ ${estimate.remainingKm.toInt()} km", "Estimated range: ≈ ${estimate.remainingKm.toInt()} km"),
+            text = best?.let {
+                t(
+                    "Moins cher autour : ${Format.price(it.effectivePrice)} chez ${it.station.displayName}, à ${Format.distance(it.distanceKm)}.",
+                    "Cheapest nearby: ${Format.price(it.effectivePrice)} at ${it.station.displayName}, ${Format.distance(it.distanceKm)} away.",
+                )
+            } ?: t("Pensez à faire le plein.", "Remember to fill up."),
             stationId = best?.station?.id,
         )
     }
@@ -100,8 +105,11 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
                 if (outNotified.add(shortageKey)) {
                     Notifier.notify(
                         applicationContext, Notifier.CHANNEL_ALERTS, shortageKey.hashCode(),
-                        title = "Rupture chez ${station.displayName}",
-                        text = "${fuel.label} indisponible pour le moment. Touchez pour voir les autres carburants et stations.",
+                        title = t("Rupture chez ${station.displayName}", "Out of stock at ${station.displayName}"),
+                        text = t(
+                            "${fuel.label} indisponible pour le moment. Touchez pour voir les autres carburants et stations.",
+                            "${fuel.label} unavailable for now. Tap to see the other fuels and stations.",
+                        ),
                         stationId = station.id,
                     )
                 }
@@ -110,8 +118,9 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
             if (outNotified.remove(shortageKey)) {
                 Notifier.notify(
                     applicationContext, Notifier.CHANNEL_ALERTS, shortageKey.hashCode(),
-                    title = "${fuel.label} de retour chez ${station.displayName}",
-                    text = station.priceOf(fuel)?.let { "Disponible à ${Format.price(it.price)}." } ?: "De nouveau disponible.",
+                    title = t("${fuel.label} de retour chez ${station.displayName}", "${fuel.label} back at ${station.displayName}"),
+                    text = station.priceOf(fuel)?.let { t("Disponible à ${Format.price(it.price)}.", "Available at ${Format.price(it.price)}.") }
+                        ?: t("De nouveau disponible.", "Available again."),
                     stationId = station.id,
                 )
             }
@@ -129,13 +138,15 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
             when {
                 newLowUnderThreshold || bigDrop -> {
                     val text = buildString {
-                        append("${fuel.label} à ${Format.price(price)}")
+                        append(t("${fuel.label} à ${Format.price(price)}", "${fuel.label} at ${Format.price(price)}"))
                         if (drop > 0) append(" (−${Format.cents(drop)})")
-                        if (newLowUnderThreshold) append(", sous votre seuil de ${Format.price(threshold)}")
+                        if (newLowUnderThreshold) {
+                            append(t(", sous votre seuil de ${Format.price(threshold)}", ", below your threshold of ${Format.price(threshold)}"))
+                        }
                     }
                     Notifier.notify(
                         applicationContext, Notifier.CHANNEL_ALERTS, station.id.hashCode(),
-                        title = "Baisse chez ${station.displayName}", text = text, stationId = station.id,
+                        title = t("Baisse chez ${station.displayName}", "Price drop at ${station.displayName}"), text = text, stationId = station.id,
                     )
                     app.db.favorites().updateLastAlert(station.id, price)
                 }

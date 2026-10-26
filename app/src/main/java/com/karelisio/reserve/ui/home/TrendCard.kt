@@ -32,12 +32,15 @@ import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Trend
 import com.karelisio.reserve.domain.TrendDirection
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.Sparkline
 
 /** "Maintenant ou attendre ?" */
@@ -85,9 +88,13 @@ fun TrendCard(trend: Trend, fuel: Fuel, modifier: Modifier = Modifier, national:
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Maintenant ou attendre ?", style = MaterialTheme.typography.labelLarge)
                     Text(
-                        "${fuel.label} : ${trend.label.lowercase()}",
+                        t("Maintenant ou attendre ?", "Fill up now or wait?"),
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Text(
+                        t("${fuel.label} : ${trend.label.lowercase()}", "${fuel.label}: ${trend.label.lowercase()}"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -101,7 +108,7 @@ fun TrendCard(trend: Trend, fuel: Fuel, modifier: Modifier = Modifier, national:
                     trend.points,
                     Modifier.fillMaxWidth().height(48.dp),
                     color = onContainer,
-                    description = "Prix moyen de la zone sur 7 jours",
+                    description = t("Prix moyen de la zone sur 7 jours", "Average price in your area over 7 days"),
                     endTime = trend.points.last().first,
                     stepped = false,
                 )
@@ -111,15 +118,25 @@ fun TrendCard(trend: Trend, fuel: Fuel, modifier: Modifier = Modifier, national:
                     Icon(Icons.Rounded.CalendarMonth, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "Meilleur jour : le ${best.label}, −${Format.cents(best.gap)} en moyenne",
+                        t(
+                            "Meilleur jour : le ${best.label}, −${Format.cents(best.gap)} en moyenne",
+                            "Best day: ${best.label}, −${Format.cents(best.gap)} on average",
+                        ),
                         style = MaterialTheme.typography.bodyMediumEmphasized,
                     )
                 }
             }
             if (trend.today != null && trend.weekAverage != null) {
                 Text(
-                    "Moyenne de la zone : ${Format.price(trend.today)} aujourd'hui · ${Format.price(trend.weekAverage)} sur 7 jours" +
-                        national?.let { "\nMoyenne France : ${Format.price(it)} (zone ${signedCents(trend.today - it)})" }.orEmpty(),
+                    t(
+                        "Moyenne de la zone : ${Format.price(trend.today)} aujourd'hui · ${Format.price(trend.weekAverage)} sur 7 jours",
+                        "Area average: ${Format.price(trend.today)} today · ${Format.price(trend.weekAverage)} over 7 days",
+                    ) + national?.let {
+                        t(
+                            "\nMoyenne France : ${Format.price(it)} (zone ${signedCents(trend.today - it)})",
+                            "\nFrance average: ${Format.price(it)} (area ${signedCents(trend.today - it)})",
+                        )
+                    }.orEmpty(),
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(top = 4.dp),
                 )

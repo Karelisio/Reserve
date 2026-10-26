@@ -11,6 +11,7 @@ import android.service.quicksettings.TileService
 import com.karelisio.reserve.MainActivity
 import com.karelisio.reserve.R
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.work.Surfaces
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,14 +35,17 @@ class BestPriceTileService : TileService() {
             tile.icon = Icon.createWithResource(this@BestPriceTileService, R.drawable.ic_stat_reserve)
             if (data == null || best == null) {
                 tile.label = getString(R.string.tile_label)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tile.subtitle = "Ouvrir Reserve"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tile.subtitle = t("Ouvrir Reserve", "Open Reserve")
                 tile.state = Tile.STATE_INACTIVE
             } else {
                 tile.label = Format.price(best.effectivePrice)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     tile.subtitle = "${data.fuel.label} · ${Format.distance(best.distanceKm)}"
                 }
-                tile.contentDescription = "${data.fuel.label} à ${Format.price(best.effectivePrice)}, ${best.station.displayName}"
+                tile.contentDescription = t(
+                    "${data.fuel.label} à ${Format.price(best.effectivePrice)}, ${best.station.displayName}",
+                    "${data.fuel.label} at ${Format.price(best.effectivePrice)}, ${best.station.displayName}",
+                )
                 tile.state = Tile.STATE_ACTIVE
             }
             tile.updateTile()

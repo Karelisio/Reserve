@@ -35,6 +35,7 @@ import com.karelisio.reserve.data.VehicleRepository
 import com.karelisio.reserve.data.local.VehicleEntity
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.rememberHaptics
 
@@ -48,9 +49,12 @@ fun VehiclesSection(
 ) {
     val haptics = rememberHaptics()
     var editing by remember { mutableStateOf<VehicleEntity?>(null) }
-    SettingsSection("Véhicules") {
+    SettingsSection(t("Véhicules", "Vehicles")) {
         Text(
-            "Le véhicule actif fixe le carburant, la consommation (vrai coût) et le réservoir (autonomie estimée).",
+            t(
+                "Le véhicule actif fixe le carburant, la consommation (vrai coût) et le réservoir (autonomie estimée).",
+                "The active vehicle sets the fuel, consumption (true cost) and tank size (estimated range).",
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -60,11 +64,14 @@ fun VehiclesSection(
                 leadingContent = { RadioButton(selected = vehicle.id == activeId, onClick = null) },
                 supportingContent = {
                     Text(
-                        "${vehicle.fuel.label} · ${Format.number(vehicle.consumption)} L/100 · réservoir ${Format.number(vehicle.tankCapacity, 0)} L",
+                        t(
+                            "${vehicle.fuel.label} · ${Format.number(vehicle.consumption)} L/100 · réservoir ${Format.number(vehicle.tankCapacity, 0)} L",
+                            "${vehicle.fuel.label} · ${Format.number(vehicle.consumption)} L/100 · tank ${Format.number(vehicle.tankCapacity, 0)} L",
+                        ),
                     )
                 },
                 trailingContent = {
-                    IconButton(onClick = { editing = vehicle }) { Icon(Icons.Rounded.Edit, contentDescription = "Modifier ${vehicle.name}") }
+                    IconButton(onClick = { editing = vehicle }) { Icon(Icons.Rounded.Edit, contentDescription = t("Modifier ${vehicle.name}", "Edit ${vehicle.name}")) }
                 },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             ) { Text(vehicle.name) }
@@ -75,7 +82,7 @@ fun VehiclesSection(
             editing = VehicleEntity(name = "", fuel = Fuel.GAZOLE, consumption = 6.5, fillLiters = 40.0, tankCapacity = VehicleRepository.DEFAULT_TANK)
         }) {
             Icon(Icons.Rounded.Add, null)
-            Text("  Ajouter un véhicule")
+            Text(t("  Ajouter un véhicule", "  Add a vehicle"))
         }
     }
 
@@ -105,16 +112,16 @@ private fun VehicleDialog(
     var tank by remember { mutableStateOf(Format.number(vehicle.tankCapacity, 0)) }
     val c = Format.parseDecimal(consumption)?.takeIf { it in 2.0..30.0 }
     val f = Format.parseDecimal(fill)?.takeIf { it in 5.0..150.0 }
-    val t = Format.parseDecimal(tank)?.takeIf { it in 10.0..200.0 }
-    val valid = name.isNotBlank() && c != null && f != null && t != null
+    val tk = Format.parseDecimal(tank)?.takeIf { it in 10.0..200.0 }
+    val valid = name.isNotBlank() && c != null && f != null && tk != null
 
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.DirectionsCar, null) },
-        title = { Text(if (vehicle.id == 0L) "Nouveau véhicule" else "Modifier le véhicule") },
+        title = { Text(if (vehicle.id == 0L) t("Nouveau véhicule", "New vehicle") else t("Modifier le véhicule", "Edit vehicle")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Nom") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(name, { name = it }, label = { Text(t("Nom", "Name")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 ConnectedChoice(
                     options = Fuel.selectableEntries,
                     selected = fuel,
@@ -123,23 +130,23 @@ private fun VehicleDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NumberField("Conso", "L/100", consumption, { consumption = it }, c == null, Modifier.weight(1f))
-                    NumberField("Plein", "L", fill, { fill = it }, f == null, Modifier.weight(1f))
+                    NumberField(t("Conso", "Consumption"), "L/100", consumption, { consumption = it }, c == null, Modifier.weight(1f))
+                    NumberField(t("Plein", "Fill-up"), "L", fill, { fill = it }, f == null, Modifier.weight(1f))
                 }
-                NumberField("Réservoir", "L", tank, { tank = it }, t == null, Modifier.fillMaxWidth())
+                NumberField(t("Réservoir", "Tank"), "L", tank, { tank = it }, tk == null, Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
             TextButton(
                 enabled = valid,
                 onClick = {
-                    onSave(vehicle.copy(name = name.trim(), fuel = fuel, consumption = c!!, fillLiters = f!!, tankCapacity = t!!))
+                    onSave(vehicle.copy(name = name.trim(), fuel = fuel, consumption = c!!, fillLiters = f!!, tankCapacity = tk!!))
                 },
-            ) { Text("Enregistrer") }
+            ) { Text(t("Enregistrer", "Save")) }
         },
         dismissButton = {
-            if (canDelete) TextButton(onClick = onDelete) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
-            else TextButton(onClick = onDismiss) { Text("Annuler") }
+            if (canDelete) TextButton(onClick = onDelete) { Text(t("Supprimer", "Delete"), color = MaterialTheme.colorScheme.error) }
+            else TextButton(onClick = onDismiss) { Text(t("Annuler", "Cancel")) }
         },
     )
 }

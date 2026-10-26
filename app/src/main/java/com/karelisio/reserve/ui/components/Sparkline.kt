@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.karelisio.reserve.domain.t
 
 /**
  * Small price chart: [points] are (time, price) pairs. Prices are drawn as steps, since a
@@ -31,7 +32,7 @@ fun Sparkline(
     points: List<Pair<Long, Double>>,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
-    description: String = "Évolution du prix",
+    description: String = t("Évolution du prix", "Price history"),
     endTime: Long = System.currentTimeMillis(),
     stepped: Boolean = true,
 ) {

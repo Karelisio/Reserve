@@ -17,8 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.data.model.NavApp
+import com.karelisio.reserve.domain.t
 
 @Composable
 fun NavAppSheet(onPick: (NavApp) -> Unit, onDismiss: () -> Unit) {
@@ -26,21 +29,21 @@ fun NavAppSheet(onPick: (NavApp) -> Unit, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.navigationBarsPadding().padding(bottom = 16.dp)) {
             Text(
-                "Y aller avec…",
+                t("Y aller avec…", "Go there with…"),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).semantics { heading() },
             )
             listOf(
                 Triple(NavApp.WAZE, "Waze", Icons.Rounded.Navigation),
                 Triple(NavApp.GOOGLE_MAPS, "Google Maps", Icons.Rounded.Map),
-                Triple(NavApp.OTHER, "Autre application", Icons.Rounded.Public),
+                Triple(NavApp.OTHER, t("Autre application", "Other app"), Icons.Rounded.Public),
             ).forEach { (app, label, icon) ->
                 val installed = Navigator.isInstalled(context, app)
                 ListItem(
                     onClick = { onPick(app) },
                     leadingContent = { Icon(icon, null) },
                     supportingContent = if (!installed) {
-                        { Text("Non installée : ouverture dans le navigateur") }
+                        { Text(t("Non installée : ouverture dans le navigateur", "Not installed: opens in the browser")) }
                     } else null,
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     modifier = Modifier.padding(horizontal = 8.dp),

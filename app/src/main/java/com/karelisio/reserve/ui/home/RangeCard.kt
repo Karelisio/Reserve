@@ -22,10 +22,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.RangeEstimate
+import com.karelisio.reserve.domain.t
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -46,8 +48,9 @@ fun RangeCard(estimate: RangeEstimate, vehicleName: String?, modifier: Modifier 
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    "Autonomie estimée" + vehicleName?.let { " · $it" }.orEmpty(),
+                    t("Autonomie estimée", "Estimated range") + vehicleName?.let { " · $it" }.orEmpty(),
                     style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.semantics { heading() },
                 )
                 Text(
                     "≈ ${estimate.remainingKm.roundToInt()} km",
@@ -55,13 +58,18 @@ fun RangeCard(estimate: RangeEstimate, vehicleName: String?, modifier: Modifier 
                 )
                 val days = estimate.daysLeft
                 Text(
-                    if (estimate.onReserve) "Vous êtes probablement sur la réserve : faites le plein bientôt."
-                    else "≈ ${Format.number(estimate.remainingLiters, 0)} L, environ ${if (days < 1.5) "1 jour" else "${days.roundToInt()} jours"} au rythme habituel",
+                    if (estimate.onReserve) t("Vous êtes probablement sur la réserve : faites le plein bientôt.", "You're probably on reserve: fill up soon.")
+                    else t(
+                        "≈ ${Format.number(estimate.remainingLiters, 0)} L, environ ${if (days < 1.5) "1 jour" else "${days.roundToInt()} jours"} au rythme habituel",
+                        "≈ ${Format.number(estimate.remainingLiters, 0)} L, about ${if (days < 1.5) "1 day" else "${days.roundToInt()} days"} at your usual pace",
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Text(
-                    "D'après votre carnet, depuis le plein du ${Format.date(estimate.lastFillUpDate)}" +
-                        if (!estimate.fromFullTank) " (partiel : estimation moins sûre)" else "",
+                    t(
+                        "D'après votre carnet, depuis le plein du ${Format.date(estimate.lastFillUpDate)}",
+                        "From your fuel log, since the fill-up on ${Format.date(estimate.lastFillUpDate)}",
+                    ) + if (!estimate.fromFullTank) t(" (partiel : estimation moins sûre)", " (partial: less reliable estimate)") else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = content.copy(alpha = 0.75f),
                 )
@@ -77,7 +85,7 @@ private fun Gauge(level: Float, modifier: Modifier) {
     val fill = MaterialTheme.colorScheme.primary
     val reserve = MaterialTheme.colorScheme.error
     val needle = MaterialTheme.colorScheme.onSurface
-    Canvas(modifier.semantics { contentDescription = "Réservoir à ${(level * 100).roundToInt()} %" }) {
+    Canvas(modifier.semantics { contentDescription = t("Réservoir à ${(level * 100).roundToInt()} %", "Tank ${(level * 100).roundToInt()}% full") }) {
         val stroke = size.minDimension * 0.11f
         val inset = stroke / 2 + 2
         val arcSize = Size(size.width - 2 * inset, size.height - 2 * inset)

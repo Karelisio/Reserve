@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.data.model.SortMode
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.RankedStation
+import com.karelisio.reserve.domain.t
 
 @Composable
 fun StationCard(
@@ -44,7 +45,7 @@ fun StationCard(
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier,
-    detourLabel: String = "aller-retour",
+    detourLabel: String = t("aller-retour", "round-trip"),
 ) {
     val haptics = rememberHaptics()
     val station = item.station
@@ -83,16 +84,22 @@ fun StationCard(
                     val saving = item.savings
                     Text(
                         text = when {
-                            kotlin.math.abs(saving) < 0.05 -> "Plein ${Format.euros(item.totalCost)} · référence"
-                            saving > 0 -> "Plein ${Format.euros(item.totalCost)} · ${Format.euros(saving)} économisés"
-                            else -> "Plein ${Format.euros(item.totalCost)} · ${Format.euros(-saving)} de plus"
+                            kotlin.math.abs(saving) < 0.05 -> t("Plein ${Format.euros(item.totalCost)} · référence", "Full tank ${Format.euros(item.totalCost)} · baseline")
+                            saving > 0 -> t(
+                                "Plein ${Format.euros(item.totalCost)} · ${Format.euros(saving)} économisés",
+                                "Full tank ${Format.euros(item.totalCost)} · ${Format.euros(saving)} saved",
+                            )
+                            else -> t(
+                                "Plein ${Format.euros(item.totalCost)} · ${Format.euros(-saving)} de plus",
+                                "Full tank ${Format.euros(item.totalCost)} · ${Format.euros(-saving)} more",
+                            )
                         },
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = if (saving > 0.05) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        "Détour ${Format.distance(item.detourKm)} $detourLabel inclus",
+                        t("Détour ${Format.distance(item.detourKm)} $detourLabel inclus", "Includes ${Format.distance(item.detourKm)} $detourLabel detour"),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -101,15 +108,15 @@ fun StationCard(
                 if (hasTags) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
                         if (item.outOfStock) Tag(
-                            "Rupture", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer,
+                            t("Rupture", "Out of stock"), MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer,
                             icon = Icons.Rounded.Block,
                         )
                         if (item.stale) Tag(
-                            "Prix de plus de 3 j", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer,
+                            t("Prix de plus de 3 j", "Price over 3 days old"), MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer,
                             icon = Icons.Rounded.HourglassBottom,
                         )
                         if (item.discount > 0) Tag(
-                            "−${Format.cents(item.discount)} fidélité", MaterialTheme.colorScheme.secondaryContainer,
+                            t("−${Format.cents(item.discount)} fidélité", "−${Format.cents(item.discount)} loyalty"), MaterialTheme.colorScheme.secondaryContainer,
                             MaterialTheme.colorScheme.onSecondaryContainer, icon = Icons.Rounded.LocalOffer,
                         )
                     }
@@ -122,7 +129,7 @@ fun StationCard(
                 AnimatedContent(isFavorite, transitionSpec = { scaleIn() togetherWith scaleOut() }, label = "fav") { fav ->
                     Icon(
                         if (fav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        contentDescription = if (fav) "Retirer des favoris" else "Ajouter aux favoris",
+                        contentDescription = if (fav) t("Retirer des favoris", "Remove from favourites") else t("Ajouter aux favoris", "Add to favourites"),
                         tint = if (fav) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

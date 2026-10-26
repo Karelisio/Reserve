@@ -10,6 +10,7 @@ import com.karelisio.reserve.container
 import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.domain.TrendAnalyzer
 import com.karelisio.reserve.domain.WeeklyRecap
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.notifications.Notifier
 import java.time.DayOfWeek
 import java.time.Duration
@@ -36,7 +37,7 @@ class WeeklyRecapWorker(context: Context, params: WorkerParameters) : CoroutineW
         if (recap.isEmpty) return Result.success()
         Notifier.notify(
             applicationContext, Notifier.CHANNEL_RECAP, NOTIFICATION_ID,
-            title = "Votre semaine carburant", text = recap.text(), stationId = null,
+            title = t("Votre semaine carburant", "Your fuel week"), text = recap.text(), stationId = null,
         )
         return Result.success()
     }

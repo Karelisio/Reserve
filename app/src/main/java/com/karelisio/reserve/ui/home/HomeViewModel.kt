@@ -25,6 +25,7 @@ import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.domain.Trend
 import com.karelisio.reserve.domain.TrendAnalyzer
 import com.karelisio.reserve.domain.Vehicle
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.work.Surfaces
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -197,7 +198,12 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
             }
             val center = located ?: settings.lastLocation ?: app.stations.lastResult.value?.center
             if (center == null) {
-                transient.value = Transient(error = "Position indisponible. Activez la localisation puis réessayez.")
+                transient.value = Transient(
+                    error = t(
+                        "Position indisponible. Activez la localisation puis réessayez.",
+                        "Location unavailable. Turn on location and try again.",
+                    ),
+                )
                 return@launch
             }
             if (located != null) app.settings.setLastLocation(located)
@@ -209,8 +215,8 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
                 Diagnostics.log("prix", "Actualisation impossible", e)
                 val cached = app.stations.lastResult.value
                 transient.value = Transient(
-                    error = if (cached != null) "Hors ligne : prix du ${Format.dateTime(cached.fetchedAt)}"
-                    else "Impossible de joindre data.economie.gouv.fr. Vérifiez la connexion.",
+                    error = if (cached != null) t("Hors ligne : prix du ${Format.dateTime(cached.fetchedAt)}", "Offline: prices from ${Format.dateTime(cached.fetchedAt)}")
+                    else t("Impossible de joindre data.economie.gouv.fr. Vérifiez la connexion.", "Can't reach data.economie.gouv.fr. Check your connection."),
                 )
             }
         }
@@ -256,7 +262,7 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
                 transient.value = Transient()
             } catch (e: Exception) {
                 Diagnostics.log("prix", "Recherche autour d'un lieu impossible", e)
-                transient.value = Transient(error = "Impossible de charger les prix autour de $label.")
+                transient.value = Transient(error = t("Impossible de charger les prix autour de $label.", "Couldn't load prices around $label."))
             }
         }
     }

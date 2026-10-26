@@ -26,11 +26,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.rememberHaptics
 
@@ -60,8 +63,13 @@ fun FillUpSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                if (draft.stationId != null) "Plein chez ${draft.stationLabel}" else "Nouveau plein",
+                if (draft.stationId != null) {
+                    t("Plein chez ${draft.stationLabel}", "Fill-up at ${draft.stationLabel}")
+                } else {
+                    t("Nouveau plein", "New fill-up")
+                },
                 style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.semantics { heading() },
             )
             if (draft.stationId == null) {
                 OutlinedTextField(
@@ -87,7 +95,7 @@ fun FillUpSheet(
                 )
                 OutlinedTextField(
                     value = price, onValueChange = { price = it },
-                    label = { Text("Prix") }, suffix = { Text("€/L") }, singleLine = true,
+                    label = { Text(t("Prix", "Price")) }, suffix = { Text("€/L") }, singleLine = true,
                     isError = price.isNotBlank() && priceValue == null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f),
@@ -95,17 +103,17 @@ fun FillUpSheet(
             }
             OutlinedTextField(
                 value = odometer, onValueChange = { odometer = it.filter { c -> c.isDigit() }.take(7) },
-                label = { Text("Kilométrage (optionnel)") }, suffix = { Text("km") }, singleLine = true,
-                supportingText = lastOdometer?.let { { Text("Dernier relevé : $it km") } },
+                label = { Text(t("Kilométrage (optionnel)", "Odometer (optional)")) }, suffix = { Text("km") }, singleLine = true,
+                supportingText = lastOdometer?.let { { Text(t("Dernier relevé : $it km", "Last reading: $it km")) } },
                 isError = odometerValue != null && lastOdometer != null && odometerValue < lastOdometer,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth(),
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Plein complet", style = MaterialTheme.typography.bodyLarge)
+                    Text(t("Plein complet", "Full tank"), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "Nécessaire pour calculer la consommation réelle",
+                        t("Nécessaire pour calculer la consommation réelle", "Needed to work out real consumption"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -114,7 +122,7 @@ fun FillUpSheet(
             }
             if (litersValue != null && priceValue != null) {
                 Text(
-                    "Total : ${Format.euros(litersValue * priceValue)}",
+                    t("Total : ${Format.euros(litersValue * priceValue)}", "Total: ${Format.euros(litersValue * priceValue)}"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
@@ -123,7 +131,7 @@ fun FillUpSheet(
             Spacer(Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(onClick = { onSkip?.invoke() ?: onDismiss() }, modifier = Modifier.weight(1f)) {
-                    Text(if (onSkip != null) "Pas de plein" else "Annuler")
+                    Text(if (onSkip != null) t("Pas de plein", "No fill-up") else t("Annuler", "Cancel"))
                 }
                 Button(
                     onClick = {
@@ -132,7 +140,7 @@ fun FillUpSheet(
                     },
                     enabled = litersValue != null && priceValue != null,
                     modifier = Modifier.weight(1f),
-                ) { Text("Enregistrer") }
+                ) { Text(t("Enregistrer", "Save")) }
             }
         }
     }

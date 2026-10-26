@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.FuelSelector
 import com.karelisio.reserve.ui.components.InfoBanner
 import com.karelisio.reserve.ui.components.SourceFooter
@@ -86,8 +87,8 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
         contentWindowInsets = WindowInsets(0),
         topBar = {
             MediumFlexibleTopAppBar(
-                title = { Text("Sur mon trajet") },
-                subtitle = { Text("Stations à moins de 2 km de la route") },
+                title = { Text(t("Sur mon trajet", "On my route")) },
+                subtitle = { Text(t("Stations à moins de 2 km de la route", "Stations within 2 km of the route")) },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -102,11 +103,11 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
                     OutlinedTextField(
                         value = state.query,
                         onValueChange = vm::setQuery,
-                        placeholder = { Text("Destination (adresse, ville…)") },
+                        placeholder = { Text(t("Destination (adresse, ville…)", "Destination (address, town…)")) },
                         leadingIcon = { Icon(Icons.Rounded.Search, null) },
                         trailingIcon = {
                             if (state.query.isNotEmpty()) {
-                                IconButton(onClick = { haptics.tick(); vm.clear() }) { Icon(Icons.Rounded.Close, contentDescription = "Effacer") }
+                                IconButton(onClick = { haptics.tick(); vm.clear() }) { Icon(Icons.Rounded.Close, contentDescription = t("Effacer", "Clear")) }
                             }
                         },
                         singleLine = true,
@@ -154,7 +155,12 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
             val route = state.route
             if (route == null && !state.loading && state.error == null) {
                 item(key = "hint") {
-                    EmptyState("Saisissez votre destination : Reserve calcule l'itinéraire et classe les stations du trajet par vrai coût, détour compris.")
+                    EmptyState(
+                        t(
+                            "Saisissez votre destination : Reserve calcule l'itinéraire et classe les stations du trajet par vrai coût, détour compris.",
+                            "Enter your destination: Reserve plans the route and ranks the stations along it by real cost, detour included.",
+                        ),
+                    )
                 }
             }
             if (route != null && !state.loading) {
@@ -174,7 +180,10 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
                                 )
                                 Text(
                                     "${route.distanceKm.roundToInt()} km · ${formatDuration(route.durationMin)} · " +
-                                        "${state.stations.size} station${if (state.stations.size > 1) "s" else ""}",
+                                        t(
+                                            "${state.stations.size} station${if (state.stations.size > 1) "s" else ""}",
+                                            "${state.stations.size} station${if (state.stations.size != 1) "s" else ""}",
+                                        ),
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                             }
@@ -199,7 +208,14 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
                     )
                 }
                 if (state.stations.isEmpty()) {
-                    item(key = "none") { EmptyState("Aucune station ne vend ${state.settings.fuel.label} le long de ce trajet.") }
+                    item(key = "none") {
+                        EmptyState(
+                            t(
+                                "Aucune station ne vend ${state.settings.fuel.label} le long de ce trajet.",
+                                "No station sells ${state.settings.fuel.label} along this route.",
+                            ),
+                        )
+                    }
                 }
                 val range = state.stations.priceRange()
                 val bestId = state.stations.firstOrNull()?.ranked?.station?.id
@@ -209,7 +225,10 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
                             Icon(Icons.Rounded.Flag, null, Modifier.height(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                "À ${item.alongKm.roundToInt()} km du départ · ${Format.distance(item.offRouteKm)} de la route",
+                                t(
+                                    "À ${item.alongKm.roundToInt()} km du départ · ${Format.distance(item.offRouteKm)} de la route",
+                                    "${item.alongKm.roundToInt()} km from the start · ${Format.distance(item.offRouteKm)} off the route",
+                                ),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f),
@@ -221,15 +240,22 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
                                     if (Navigator.navigateVia(context, item.ranked.station, destination.position, app)) {
                                         vm.onNavigate(item.ranked)
                                         if (app == NavApp.WAZE) {
-                                            Toast.makeText(context, "Waze ne gère pas les étapes : direction la station d'abord", Toast.LENGTH_LONG).show()
+                                            Toast.makeText(
+                                                context,
+                                                t(
+                                                    "Waze ne gère pas les étapes : direction la station d'abord",
+                                                    "Waze doesn't support stops: heading to the station first",
+                                                ),
+                                                Toast.LENGTH_LONG,
+                                            ).show()
                                         }
                                     } else {
-                                        Toast.makeText(context, "Aucune application de navigation trouvée", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, t("Aucune application de navigation trouvée", "No navigation app found"), Toast.LENGTH_SHORT).show()
                                     }
                                 }) {
                                     Icon(Icons.AutoMirrored.Rounded.AltRoute, null, Modifier.size(18.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Via cette station")
+                                    Text(t("Via cette station", "Via this station"))
                                 }
                             }
                         }
@@ -241,14 +267,17 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
                             isBest = item.ranked.station.id == bestId,
                             onClick = { onOpenStation(item.ranked.station.id) },
                             onToggleFavorite = { onToggleFavorite(item.ranked.station) },
-                            detourLabel = "hors trajet",
+                            detourLabel = t("hors trajet", "off route"),
                         )
                     }
                 }
                 item(key = "footer") {
                     SourceFooter()
                     Text(
-                        "Itinéraire : OSRM, données © contributeurs OpenStreetMap. Adresses : Base Adresse Nationale.",
+                        t(
+                            "Itinéraire : OSRM, données © contributeurs OpenStreetMap. Adresses : Base Adresse Nationale.",
+                            "Routing: OSRM, data © OpenStreetMap contributors. Addresses: Base Adresse Nationale.",
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 24.dp),

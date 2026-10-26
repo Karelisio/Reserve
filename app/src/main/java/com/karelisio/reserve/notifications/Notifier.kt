@@ -12,6 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.karelisio.reserve.MainActivity
 import com.karelisio.reserve.R
+import com.karelisio.reserve.domain.t
 
 object Notifier {
     const val CHANNEL_ALERTS = "price_alerts"
@@ -23,15 +24,28 @@ object Notifier {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         manager.createNotificationChannels(
             listOf(
-                NotificationChannel(CHANNEL_ALERTS, "Alertes de prix", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = "Baisse de prix ou seuil atteint dans une station favorite"
+                NotificationChannel(CHANNEL_ALERTS, t("Alertes de prix", "Price alerts"), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = t(
+                        "Baisse de prix ou seuil atteint dans une station favorite",
+                        "Price drop or threshold reached at a favourite station",
+                    )
                 },
-                NotificationChannel(CHANNEL_CAR, "En voiture", NotificationManager.IMPORTANCE_HIGH).apply {
-                    description = "Station la moins chère quand le téléphone se connecte à la voiture"
+                NotificationChannel(CHANNEL_CAR, t("En voiture", "In the car"), NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = t(
+                        "Station la moins chère quand le téléphone se connecte à la voiture",
+                        "Cheapest station when the phone connects to the car",
+                    )
                 },
-                NotificationChannel(CHANNEL_BACKGROUND, "Mises à jour en arrière-plan", NotificationManager.IMPORTANCE_MIN),
-                NotificationChannel(CHANNEL_RECAP, "Récap hebdomadaire", NotificationManager.IMPORTANCE_LOW).apply {
-                    description = "Le dimanche : dépenses, économies et meilleur jour pour faire le plein"
+                NotificationChannel(
+                    CHANNEL_BACKGROUND,
+                    t("Mises à jour en arrière-plan", "Background updates"),
+                    NotificationManager.IMPORTANCE_MIN,
+                ),
+                NotificationChannel(CHANNEL_RECAP, t("Récap hebdomadaire", "Weekly recap"), NotificationManager.IMPORTANCE_LOW).apply {
+                    description = t(
+                        "Le dimanche : dépenses, économies et meilleur jour pour faire le plein",
+                        "On Sundays: spending, savings and the best day to fill up",
+                    )
                 },
             ),
         )

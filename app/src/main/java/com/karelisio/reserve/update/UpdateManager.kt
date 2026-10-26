@@ -18,6 +18,7 @@ import com.karelisio.reserve.data.remote.lng
 import com.karelisio.reserve.data.remote.obj
 import com.karelisio.reserve.data.remote.str
 import com.karelisio.reserve.diagnostics.Diagnostics
+import com.karelisio.reserve.domain.t
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -80,7 +81,7 @@ class UpdateManager(
 
     fun checkNow() {
         if (!enabled) {
-            _state.value = UpdateState.Failed("Mises à jour désactivées dans la version de développement.", null)
+            _state.value = UpdateState.Failed(t("Mises à jour désactivées dans la version de développement.", "Updates are disabled in the development build."), null)
             return
         }
         scope.launch { check(userInitiated = true) }
@@ -99,8 +100,11 @@ class UpdateManager(
             }
         } catch (e: Exception) {
             Diagnostics.log("maj", "Vérification des mises à jour impossible", e)
-            if (userInitiated) UpdateState.Failed("Impossible de vérifier les mises à jour. Vérifiez la connexion.", null)
-            else UpdateState.Idle
+            if (userInitiated) {
+                UpdateState.Failed(t("Impossible de vérifier les mises à jour. Vérifiez la connexion.", "Could not check for updates. Check the connection."), null)
+            } else {
+                UpdateState.Idle
+            }
         }
     }
 
@@ -144,7 +148,7 @@ class UpdateManager(
                 install(apk)
             } catch (e: Exception) {
                 Diagnostics.log("maj", "Téléchargement ou installation impossible", e)
-                _state.value = UpdateState.Failed(e.message ?: "Échec du téléchargement.", update)
+                _state.value = UpdateState.Failed(e.message ?: t("Échec du téléchargement.", "Download failed."), update)
             }
         }
     }
@@ -157,8 +161,8 @@ class UpdateManager(
         val response = downloads.newCall(Request.Builder().url(update.apkUrl).build()).await()
         withContext(Dispatchers.IO) {
             response.use {
-                if (!it.isSuccessful) throw IllegalStateException("Téléchargement refusé (HTTP ${it.code}).")
-                val body = it.body ?: throw IllegalStateException("Téléchargement vide.")
+                if (!it.isSuccessful) throw IllegalStateException(t("Téléchargement refusé (HTTP ${it.code}).", "Download refused (HTTP ${it.code})."))
+                val body = it.body ?: throw IllegalStateException(t("Téléchargement vide.", "Empty download."))
                 val total = body.contentLength().takeIf { len -> len > 0 } ?: update.sizeBytes
                 body.byteStream().use { input ->
                     file.outputStream().use { output ->
@@ -181,9 +185,11 @@ class UpdateManager(
         }
         // Sanity check: same app, newer version.
         val info = context.packageManager.getPackageArchiveInfo(file.path, 0)
-            ?: throw IllegalStateException("Fichier de mise à jour invalide.")
+            ?: throw IllegalStateException(t("Fichier de mise à jour invalide.", "Invalid update file."))
         if (info.packageName != context.packageName || PackageInfoCompat.getLongVersionCode(info) <= BuildConfig.VERSION_CODE) {
-            throw IllegalStateException("Cette mise à jour ne correspond pas à l'application installée.")
+            throw IllegalStateException(
+                t("Cette mise à jour ne correspond pas à l'application installée.", "This update does not match the installed app."),
+            )
         }
         return file
     }
@@ -216,8 +222,20 @@ class UpdateManager(
             PackageInstaller.STATUS_SUCCESS -> UpdateState.Idle
             PackageInstaller.STATUS_FAILURE_ABORTED -> UpdateState.Available(update ?: return)
             PackageInstaller.STATUS_FAILURE_CONFLICT, PackageInstaller.STATUS_FAILURE_INCOMPATIBLE ->
-                UpdateState.Failed("Installation impossible : la signature diffère de la version installée.", update)
-            else -> UpdateState.Failed("Installation impossible${message?.let { " : $it" }.orEmpty()}.", update)
+                UpdateState.Failed(
+                    t(
+                        "Installation impossible : la signature diffère de la version installée.",
+                        "Installation failed: the signature differs from the installed version.",
+                    ),
+                    update,
+                )
+            else -> UpdateState.Failed(
+                t(
+                    "Installation impossible${message?.let { " : $it" }.orEmpty()}.",
+                    "Installation failed${message?.let { ": $it" }.orEmpty()}.",
+                ),
+                update,
+            )
         }
     }
 

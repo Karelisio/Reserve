@@ -24,8 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.data.model.Filters
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.rememberHaptics
 import kotlin.math.roundToInt
 
@@ -43,7 +46,11 @@ fun FiltersSheet(
             val sliderState = rememberSliderState(radiusKm.toFloat(), 4, 5f..30f)
             val radius = sliderState.value
             Row(Modifier.padding(horizontal = 24.dp)) {
-                Text("Rayon de recherche", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(
+                    t("Rayon de recherche", "Search radius"),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f).semantics { heading() },
+                )
                 Text("${radius.roundToInt()} km", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             }
             Slider(
@@ -56,17 +63,17 @@ fun FiltersSheet(
                 modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth(),
             )
             Text(
-                "Filtres",
+                t("Filtres", "Filters"),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 4.dp),
+                modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 4.dp).semantics { heading() },
             )
-            FilterRow(Icons.Rounded.CreditCard, "24/24 avec automate CB", filters.open24) {
+            FilterRow(Icons.Rounded.CreditCard, t("24/24 avec automate CB", "24/7 with card payment"), filters.open24) {
                 onFilters(filters.copy(open24 = it))
             }
-            FilterRow(Icons.Rounded.LocalCarWash, "Lavage", filters.wash) { onFilters(filters.copy(wash = it)) }
-            FilterRow(Icons.Rounded.Air, "Gonflage", filters.inflation) { onFilters(filters.copy(inflation = it)) }
-            FilterRow(Icons.Rounded.Storefront, "Boutique", filters.shop) { onFilters(filters.copy(shop = it)) }
-            FilterRow(Icons.Rounded.AddRoad, "Exclure l'autoroute", filters.excludeHighway) {
+            FilterRow(Icons.Rounded.LocalCarWash, t("Lavage", "Car wash"), filters.wash) { onFilters(filters.copy(wash = it)) }
+            FilterRow(Icons.Rounded.Air, t("Gonflage", "Tyre inflation"), filters.inflation) { onFilters(filters.copy(inflation = it)) }
+            FilterRow(Icons.Rounded.Storefront, t("Boutique", "Shop"), filters.shop) { onFilters(filters.copy(shop = it)) }
+            FilterRow(Icons.Rounded.AddRoad, t("Exclure l'autoroute", "Avoid motorways"), filters.excludeHighway) {
                 onFilters(filters.copy(excludeHighway = it))
             }
         }

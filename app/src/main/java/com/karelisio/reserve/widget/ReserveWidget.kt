@@ -38,6 +38,7 @@ import androidx.glance.text.TextStyle
 import com.karelisio.reserve.MainActivity
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.RankedStation
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.theme.GreenDarkScheme
 import com.karelisio.reserve.ui.theme.GreenLightScheme
 import com.karelisio.reserve.work.BestNearby
@@ -97,7 +98,7 @@ private fun WidgetContent(context: Context, data: BestNearby?) {
     ) {
         when {
             data == null || best == null -> Text(
-                "Ouvrez Reserve pour charger les prix autour de vous",
+                t("Ouvrez Reserve pour charger les prix autour de vous", "Open Reserve to load prices around you"),
                 style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp),
             )
             size.height < 100.dp -> Compact(data, best)
@@ -118,7 +119,7 @@ private fun Compact(data: BestNearby, best: RankedStation) {
                 maxLines = 1,
             )
             Text(
-                if (best.outOfStock) "Rupture" else Format.distance(best.distanceKm),
+                if (best.outOfStock) t("Rupture", "Out of stock") else Format.distance(best.distanceKm),
                 style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
                 maxLines = 1,
             )
@@ -130,7 +131,11 @@ private fun Compact(data: BestNearby, best: RankedStation) {
 private fun Expanded(context: Context, data: BestNearby, best: RankedStation, showList: Boolean) {
     Column(modifier = GlanceModifier.fillMaxSize()) {
         Text(
-            if (data.pinned) "${data.fuel.label} · favori" else "${data.fuel.label} · le moins cher autour",
+            if (data.pinned) {
+                t("${data.fuel.label} · favori", "${data.fuel.label} · favourite")
+            } else {
+                t("${data.fuel.label} · le moins cher autour", "${data.fuel.label} · cheapest nearby")
+            },
             style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Medium),
             maxLines = 1,
         )
@@ -145,7 +150,7 @@ private fun Expanded(context: Context, data: BestNearby, best: RankedStation, sh
                     maxLines = 1,
                 )
                 Text(
-                    (if (best.outOfStock) "Rupture · " else "") + "${Format.distance(best.distanceKm)} · ${Format.age(best.price.updatedAt)}",
+                    (if (best.outOfStock) t("Rupture · ", "Out of stock · ") else "") + "${Format.distance(best.distanceKm)} · ${Format.age(best.price.updatedAt)}",
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
                     maxLines = 1,
                 )

@@ -51,6 +51,7 @@ import com.karelisio.reserve.container
 import com.karelisio.reserve.data.local.FavoriteEntity
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.ThemeMode
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.theme.ReserveTheme
 import kotlinx.coroutines.launch
@@ -139,27 +140,36 @@ private fun ConfigScreen(
     // null = follow the fuel chosen in the app.
     var fuel by remember { mutableStateOf(initial.fuel) }
     Scaffold(
-        topBar = { MediumFlexibleTopAppBar(title = { Text("Widget Reserve") }, subtitle = { Text("Que doit-il afficher ?") }) },
+        topBar = {
+            MediumFlexibleTopAppBar(
+                title = { Text(t("Widget Reserve", "Reserve widget")) },
+                subtitle = { Text(t("Que doit-il afficher ?", "What should it show?")) },
+            )
+        },
         bottomBar = {
             Button(
                 onClick = { onSave(WidgetConfig(stationId, fuel)) },
                 modifier = Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp),
-            ) { Text("Valider") }
+            ) { Text(t("Valider", "Save")) }
         },
     ) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
             item {
-                Text("Carburant", style = MaterialTheme.typography.titleMedium)
+                Text(t("Carburant", "Fuel"), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
                 ConnectedChoice(
                     options = listOf<Fuel?>(null) + Fuel.selectableEntries,
                     selected = fuel,
-                    label = { it?.let { f -> if (f == Fuel.E10) "E10" else f.label } ?: "Appli" },
+                    label = { it?.let { f -> if (f == Fuel.E10) "E10" else f.label } ?: t("Appli", "App") },
                     onSelect = { fuel = it },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    if (fuel == null) "Suit le carburant choisi dans l'appli (${appFuel.label})." else "Toujours ${fuel!!.label}.",
+                    if (fuel == null) {
+                        t("Suit le carburant choisi dans l'appli (${appFuel.label}).", "Follows the fuel chosen in the app (${appFuel.label}).")
+                    } else {
+                        t("Toujours ${fuel!!.label}.", "Always ${fuel!!.label}.")
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 6.dp, bottom = 16.dp),
@@ -169,8 +179,8 @@ private fun ConfigScreen(
             item {
                 Choice(
                     selected = stationId == null,
-                    title = "Le moins cher autour de moi",
-                    caption = "Vrai coût, détour compris",
+                    title = t("Le moins cher autour de moi", "Cheapest around me"),
+                    caption = t("Vrai coût, détour compris", "True cost, detour included"),
                     icon = { Icon(Icons.Rounded.NearMe, null) },
                     onClick = { stationId = null },
                 )
@@ -187,7 +197,7 @@ private fun ConfigScreen(
             if (favorites.isEmpty()) {
                 item {
                     Text(
-                        "Ajoutez des favoris dans l'appli pour pouvoir épingler une station.",
+                        t("Ajoutez des favoris dans l'appli pour pouvoir épingler une station.", "Add favourites in the app to pin a station."),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp),

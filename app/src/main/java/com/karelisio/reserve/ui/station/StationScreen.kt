@@ -52,6 +52,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,15 +62,19 @@ import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.model.Station
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.Lang
 import com.karelisio.reserve.domain.Pricing
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.PriceBadge
 import com.karelisio.reserve.ui.components.SourceFooter
 import com.karelisio.reserve.ui.components.Sparkline
 import com.karelisio.reserve.ui.components.Tag
 import com.karelisio.reserve.ui.components.rememberHaptics
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.TextStyle
 
 @Composable
 fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
@@ -82,7 +88,7 @@ fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
         val station = state.station ?: return
         haptics.confirm()
         if (Navigator.navigate(context, station, app)) vm.onNavigate()
-        else Toast.makeText(context, "Aucune application de navigation trouvée", Toast.LENGTH_SHORT).show()
+        else Toast.makeText(context, t("Aucune application de navigation trouvée", "No navigation app found"), Toast.LENGTH_SHORT).show()
     }
 
     Scaffold(
@@ -94,14 +100,14 @@ fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
                 },
                 subtitle = { state.station?.let { Text(it.fullAddress, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Retour") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = t("Retour", "Back")) }
                 },
                 actions = {
                     state.station?.let { station ->
                         IconButton(onClick = {
                             haptics.tick()
                             context.startActivity(shareIntent(station, state.settings.fuel))
-                        }) { Icon(Icons.Rounded.Share, contentDescription = "Partager") }
+                        }) { Icon(Icons.Rounded.Share, contentDescription = t("Partager", "Share")) }
                     }
                     IconToggleButton(
                         checked = state.isFavorite,
@@ -111,7 +117,7 @@ fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
                         AnimatedContent(state.isFavorite, transitionSpec = { scaleIn() togetherWith scaleOut() }, label = "fav") { fav ->
                             Icon(
                                 if (fav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                                contentDescription = if (fav) "Retirer des favoris" else "Ajouter aux favoris",
+                                contentDescription = if (fav) t("Retirer des favoris", "Remove from favourites") else t("Ajouter aux favoris", "Add to favourites"),
                                 tint = if (fav) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -130,7 +136,7 @@ fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
                         }
                     },
                     icon = { Icon(Icons.Rounded.Directions, null) },
-                    text = { Text("Y aller") },
+                    text = { Text(t("Y aller", "Go there")) },
                 )
             }
         },
@@ -141,7 +147,7 @@ fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
                 LoadingIndicator()
             }
             station == null -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("Station introuvable", style = MaterialTheme.typography.bodyLarge)
+                Text(t("Station introuvable", "Station not found"), style = MaterialTheme.typography.bodyLarge)
             }
             else -> StationContent(
                 station = station,
@@ -177,8 +183,8 @@ private fun StationContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         state.ranked?.let { ranked -> SummaryCard(ranked, state) }
-        Section("Prix") { PricesTable(station, state.settings.fuel) }
-        Section("Historique") {
+        Section(t("Prix", "Prices")) { PricesTable(station, state.settings.fuel) }
+        Section(t("Historique", "History")) {
             Column(Modifier.animateContentSize()) {
                 val fuels = station.prices.map { it.fuel }.sortedBy { it.ordinal }
                 if (fuels.size > 1) {
@@ -193,11 +199,14 @@ private fun StationContent(
                 val points = state.history.map { it.updatedAt to it.price }
                 when {
                     !state.isFavorite && points.size < 2 -> Text(
-                        "Ajoutez cette station aux favoris pour suivre l'évolution de ses prix.",
+                        t(
+                            "Ajoutez cette station aux favoris pour suivre l'évolution de ses prix.",
+                            "Add this station to your favourites to track its prices over time.",
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    points.isEmpty() -> Text("Pas encore d'historique pour ce carburant.", style = MaterialTheme.typography.bodyMedium)
+                    points.isEmpty() -> Text(t("Pas encore d'historique pour ce carburant.", "No history yet for this fuel."), style = MaterialTheme.typography.bodyMedium)
                     else -> {
                         Sparkline(points, Modifier.fillMaxWidth().height(96.dp))
                         Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
@@ -209,7 +218,10 @@ private fun StationContent(
                             Text("Max ${Format.price(points.maxOf { it.second })}", style = MaterialTheme.typography.labelLarge)
                         }
                         Text(
-                            "${points.size} relevé${if (points.size > 1) "s" else ""} depuis le ${Format.date(points.first().first)}",
+                            t(
+                                "${points.size} relevé${if (points.size > 1) "s" else ""} depuis le ${Format.date(points.first().first)}",
+                                "${points.size} reading${if (points.size > 1) "s" else ""} since ${Format.date(points.first().first)}",
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -217,7 +229,7 @@ private fun StationContent(
                 }
             }
         }
-        Section("Horaires") { OpeningHours(station) }
+        Section(t("Horaires", "Opening hours")) { OpeningHours(station) }
         if (station.services.isNotEmpty()) {
             Section("Services") {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -228,7 +240,7 @@ private fun StationContent(
             }
         }
         if (station.isHighway) {
-            Text("Station sur autoroute", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(t("Station sur autoroute", "Motorway station"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         SourceFooter()
     }
@@ -251,20 +263,35 @@ private fun SummaryCard(ranked: com.karelisio.reserve.domain.RankedStation, stat
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
-                    "Plein de ${Format.number(state.settings.fillLiters, 0)} L : ${Format.euros(ranked.totalCost)}",
+                    t(
+                        "Plein de ${Format.number(state.settings.fillLiters, 0)} L : ${Format.euros(ranked.totalCost)}",
+                        "${Format.number(state.settings.fillLiters, 0)} L fill-up: ${Format.euros(ranked.totalCost)}",
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
-                    "Détour aller-retour inclus (${Format.distance(ranked.detourKm)})",
+                    t(
+                        "Détour aller-retour inclus (${Format.distance(ranked.detourKm)})",
+                        "Round-trip detour included (${Format.distance(ranked.detourKm)})",
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                 )
                 state.national[ranked.price.fuel]?.let { avg ->
                     val diff = ranked.effectivePrice - avg
                     Text(
-                        if (diff <= 0) "${Format.cents(-diff)} sous la moyenne nationale (${Format.price(avg)})"
-                        else "${Format.cents(diff)} au-dessus de la moyenne nationale (${Format.price(avg)})",
+                        if (diff <= 0) {
+                            t(
+                                "${Format.cents(-diff)} sous la moyenne nationale (${Format.price(avg)})",
+                                "${Format.cents(-diff)} below the national average (${Format.price(avg)})",
+                            )
+                        } else {
+                            t(
+                                "${Format.cents(diff)} au-dessus de la moyenne nationale (${Format.price(avg)})",
+                                "${Format.cents(diff)} above the national average (${Format.price(avg)})",
+                            )
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -272,7 +299,10 @@ private fun SummaryCard(ranked: com.karelisio.reserve.domain.RankedStation, stat
                 }
                 if (ranked.discount > 0) {
                     Text(
-                        "Remise fidélité −${Format.cents(ranked.discount)}/L incluse",
+                        t(
+                            "Remise fidélité −${Format.cents(ranked.discount)}/L incluse",
+                            "Loyalty discount −${Format.cents(ranked.discount)}/L included",
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -291,7 +321,12 @@ private fun Section(title: String, content: @Composable () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() },
+            )
             Spacer(Modifier.height(12.dp))
             content()
         }
@@ -307,7 +342,7 @@ private fun PricesTable(station: Station, selected: Fuel) {
         if (price == null && !out) null else Triple(fuel, price, out)
     }
     if (rows.isEmpty()) {
-        Text("Aucun prix publié.", style = MaterialTheme.typography.bodyMedium)
+        Text(t("Aucun prix publié.", "No prices published."), style = MaterialTheme.typography.bodyMedium)
         return
     }
     Column {
@@ -322,16 +357,16 @@ private fun PricesTable(station: Station, selected: Fuel) {
                     )
                     if (price != null) {
                         Text(
-                            "Mis à jour ${Format.age(price.updatedAt)}",
+                            t("Mis à jour ${Format.age(price.updatedAt)}", "Updated ${Format.age(price.updatedAt)}"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
                 when {
-                    out -> Tag("Rupture", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, icon = Icons.Rounded.Block)
+                    out -> Tag(t("Rupture", "Out of stock"), MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, icon = Icons.Rounded.Block)
                     price != null && now - price.updatedAt > Pricing.STALE_AFTER_MS -> Tag(
-                        "Ancien", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer,
+                        t("Ancien", "Outdated"), MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer,
                         icon = Icons.Rounded.HourglassBottom,
                     )
                     else -> Unit
@@ -350,7 +385,9 @@ private fun PricesTable(station: Station, selected: Fuel) {
     }
 }
 
-private val dayNames = listOf("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
+/** Day name in the app language, capitalised ("Lundi", "Monday"); [day] is 1 (Monday) to 7. */
+private fun dayName(day: Int): String =
+    DayOfWeek.of(day).getDisplayName(TextStyle.FULL, Lang.locale).replaceFirstChar { it.titlecase(Lang.locale) }
 
 /** "Ouvert", "Fermé" or null when unknown, from the published opening hours. */
 fun openNow(station: Station, date: LocalDate = LocalDate.now(), time: LocalTime = LocalTime.now()): Boolean? {
@@ -370,17 +407,21 @@ private fun OpeningHours(station: Station) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (station.automate24) {
-                Tag("Automate CB 24/24", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, icon = Icons.Rounded.AccessTime)
+                Tag(t("Automate CB 24/24", "24/7 card pump"), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, icon = Icons.Rounded.AccessTime)
             }
             when (openNow(station)) {
-                true -> Tag("Ouvert", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
-                false -> Tag("Fermé", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
+                true -> Tag(t("Ouvert", "Open"), MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                false -> Tag(t("Fermé", "Closed"), MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
                 null -> Unit
             }
         }
         if (station.hours.isEmpty()) {
             Text(
-                if (station.automate24) "Horaires de la boutique non publiés." else "Horaires non publiés.",
+                if (station.automate24) {
+                    t("Horaires de la boutique non publiés.", "Shop opening hours not published.")
+                } else {
+                    t("Horaires non publiés.", "Opening hours not published.")
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -390,14 +431,14 @@ private fun OpeningHours(station: Station) {
             val isToday = day.day == today
             Row {
                 Text(
-                    dayNames[day.day - 1],
+                    dayName(day.day),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
                     when {
-                        day.closed -> "Fermé"
+                        day.closed -> t("Fermé", "Closed")
                         day.ranges.isEmpty() -> "—"
                         else -> day.ranges.joinToString("  ")
                     },
@@ -415,7 +456,14 @@ private fun shareIntent(station: Station, fuel: Fuel): android.content.Intent {
     val price = station.priceOf(fuel)
     val text = buildString {
         append(station.displayName)
-        price?.let { append(" : ${fuel.label} à ${Format.price(it.price)} (${Format.age(it.updatedAt)})") }
+        price?.let {
+            append(
+                t(
+                    " : ${fuel.label} à ${Format.price(it.price)} (${Format.age(it.updatedAt)})",
+                    ": ${fuel.label} at ${Format.price(it.price)} (${Format.age(it.updatedAt)})",
+                ),
+            )
+        }
         val others = station.prices.filter { it.fuel != fuel }.joinToString(", ") { "${it.fuel.label} ${Format.price(it.price)}" }
         if (others.isNotEmpty()) append("\n$others")
         append("\n${station.fullAddress}")
@@ -424,6 +472,6 @@ private fun shareIntent(station: Station, fuel: Fuel): android.content.Intent {
     }
     return android.content.Intent.createChooser(
         android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text),
-        "Partager la station",
+        t("Partager la station", "Share station"),
     )
 }

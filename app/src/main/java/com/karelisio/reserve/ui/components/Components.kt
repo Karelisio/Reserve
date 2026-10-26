@@ -48,10 +48,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.data.model.Fuel
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.theme.PriceColors
 import com.karelisio.reserve.ui.theme.isDarkColors
 
-const val SOURCE_MENTION = "Source : DGCCRF, prix des carburants, data.economie.gouv.fr (Licence Ouverte 2.0)"
+val SOURCE_MENTION: String
+    get() = t(
+        "Source : DGCCRF, prix des carburants, data.economie.gouv.fr (Licence Ouverte 2.0)",
+        "Source: DGCCRF, fuel prices, data.economie.gouv.fr (Licence Ouverte 2.0)",
+    )
 
 /** Light haptic feedback for the main actions. */
 @Composable
@@ -134,7 +139,7 @@ fun FuelSelector(
         if (onCharging != null) {
             AssistChip(
                 onClick = { haptics.tick(); onCharging() },
-                label = { Text("Bornes") },
+                label = { Text(t("Bornes", "EV charging")) },
                 leadingIcon = { Icon(Icons.Rounded.EvStation, null, Modifier.size(AssistChipDefaults.IconSize)) },
                 shape = MaterialTheme.shapes.small,
             )
@@ -182,7 +187,7 @@ fun <T> ConnectedChoice(
 @Composable
 fun SourceFooter(modifier: Modifier = Modifier) {
     Text(
-        text = SOURCE_MENTION + "\nNoms et enseignes : © contributeurs OpenStreetMap (ODbL)",
+        text = SOURCE_MENTION + t("\nNoms et enseignes : © contributeurs OpenStreetMap (ODbL)", "\nNames and brands: © OpenStreetMap contributors (ODbL)"),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,

@@ -1,6 +1,7 @@
 package com.karelisio.reserve.data.remote
 
 import com.karelisio.reserve.data.model.LatLon
+import com.karelisio.reserve.domain.t
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -69,8 +70,8 @@ class OsrmApi(private val client: OkHttpClient) {
             .build()
         val root = client.getJson(Request.Builder().url(url).build()).obj()
             ?: throw IllegalStateException("Empty route")
-        if (root.str("code") != "Ok") throw IllegalStateException(root.str("message") ?: "Itinéraire introuvable")
-        val route = root["routes"].arr()?.firstOrNull().obj() ?: throw IllegalStateException("Itinéraire introuvable")
+        if (root.str("code") != "Ok") throw IllegalStateException(root.str("message") ?: t("Itinéraire introuvable", "Route not found"))
+        val route = root["routes"].arr()?.firstOrNull().obj() ?: throw IllegalStateException(t("Itinéraire introuvable", "Route not found"))
         val points = route["geometry"].obj()?.get("coordinates").arr().orEmpty().mapNotNull { c ->
             val pair = c.arr() ?: return@mapNotNull null
             val lon = pair.getOrNull(0)?.toString()?.toDoubleOrNull() ?: return@mapNotNull null

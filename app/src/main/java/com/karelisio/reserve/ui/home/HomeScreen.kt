@@ -74,6 +74,7 @@ import com.karelisio.reserve.data.model.SortMode
 import com.karelisio.reserve.data.remote.AddressSuggestion
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.RankedStation
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.ActiveFilters
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.FuelSelector
@@ -121,7 +122,7 @@ fun HomeScreen(
                     if (vehicles.size > 1) {
                         Box {
                             IconButton(onClick = { haptics.tick(); vehicleMenu = true }) {
-                                Icon(Icons.Rounded.DirectionsCar, contentDescription = "Changer de véhicule")
+                                Icon(Icons.Rounded.DirectionsCar, contentDescription = t("Changer de véhicule", "Switch vehicle"))
                             }
                             DropdownMenu(expanded = vehicleMenu, onDismissRequest = { vehicleMenu = false }) {
                                 vehicles.forEach { vehicle ->
@@ -141,12 +142,15 @@ fun HomeScreen(
                         searching = !searching
                         if (!searching) vm.setQuery("")
                     }) {
-                        Icon(if (searching) Icons.Rounded.SearchOff else Icons.Rounded.Search, contentDescription = "Rechercher")
+                        Icon(
+                            if (searching) Icons.Rounded.SearchOff else Icons.Rounded.Search,
+                            contentDescription = if (searching) t("Fermer la recherche", "Close search") else t("Rechercher", "Search"),
+                        )
                     }
                     IconButton(onClick = { haptics.confirm(); vm.refresh(userInitiated = true) }) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = "Actualiser")
+                        Icon(Icons.Rounded.Refresh, contentDescription = t("Actualiser", "Refresh"))
                     }
-                    IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, contentDescription = "Réglages") }
+                    IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, contentDescription = t("Réglages", "Settings")) }
                 },
                 scrollBehavior = scrollBehavior,
             )
@@ -186,10 +190,10 @@ fun HomeScreen(
                 state.place?.let { place ->
                     item(key = "place") {
                         InfoBanner(
-                            text = "Stations autour de $place",
+                            text = t("Stations autour de $place", "Stations around $place"),
                             icon = Icons.Rounded.Place,
                             modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
-                            action = { TextButton(onClick = { haptics.tick(); vm.clearPlace() }) { Text("Ma position") } },
+                            action = { TextButton(onClick = { haptics.tick(); vm.clearPlace() }) { Text(t("Ma position", "My location")) } },
                         )
                     }
                 }
@@ -221,7 +225,7 @@ fun HomeScreen(
                             if (count > 0) Badge { Text("$count") }
                         }) {
                             FilledTonalIconButton(onClick = { haptics.tick(); showFilters = true }) {
-                                Icon(Icons.Rounded.Tune, contentDescription = "Rayon et filtres")
+                                Icon(Icons.Rounded.Tune, contentDescription = t("Rayon et filtres", "Radius and filters"))
                             }
                         }
                     }
@@ -236,7 +240,7 @@ fun HomeScreen(
                             icon = Icons.Rounded.CloudOff,
                             container = MaterialTheme.colorScheme.errorContainer,
                             modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
-                            action = { TextButton(onClick = { vm.refresh(true) }) { Text("Réessayer") } },
+                            action = { TextButton(onClick = { vm.refresh(true) }) { Text(t("Réessayer", "Retry")) } },
                         )
                     }
                 }
@@ -267,20 +271,25 @@ fun HomeScreen(
                 if (state.needsLocationPermission) {
                     item(key = "permission") {
                         InfoBanner(
-                            text = "La localisation permet de trouver les stations autour de vous.",
+                            text = t(
+                                "La localisation permet de trouver les stations autour de vous.",
+                                "Location access lets Reserve find stations around you.",
+                            ),
                             icon = Icons.Rounded.LocationOff,
                             modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
-                            action = { TextButton(onClick = { permissionLauncher.launch(LocationPermissions) }) { Text("Autoriser") } },
+                            action = { TextButton(onClick = { permissionLauncher.launch(LocationPermissions) }) { Text(t("Autoriser", "Allow")) } },
                         )
                     }
                 }
                 if (state.stations.isEmpty() && !state.loading && state.result != null) {
                     item(key = "empty") {
                         EmptyState(
-                            text = "Aucune station ne propose ${state.settings.fuel.label} dans un rayon de ${state.settings.radiusKm} km" +
-                                if (state.settings.filters.activeCount > 0) " avec ces filtres." else ".",
+                            text = t(
+                                "Aucune station ne propose ${state.settings.fuel.label} dans un rayon de ${state.settings.radiusKm} km",
+                                "No station offers ${state.settings.fuel.label} within ${state.settings.radiusKm} km",
+                            ) + if (state.settings.filters.activeCount > 0) t(" avec ces filtres.", " with these filters.") else ".",
                             action = if (state.settings.radiusKm < 30) {
-                                { Button(onClick = { vm.setRadius((state.settings.radiusKm + 10).coerceAtMost(30)) }) { Text("Élargir le rayon") } }
+                                { Button(onClick = { vm.setRadius((state.settings.radiusKm + 10).coerceAtMost(30)) }) { Text(t("Élargir le rayon", "Widen the radius")) } }
                             } else null,
                         )
                     }
@@ -356,7 +365,7 @@ private fun SearchField(
         OutlinedTextField(
             value = query,
             onValueChange = onQuery,
-            placeholder = { Text("Station, enseigne ou ville…") },
+            placeholder = { Text(t("Station, enseigne ou ville…", "Station, brand or town…")) },
             leadingIcon = { Icon(Icons.Rounded.Search, null) },
             singleLine = true,
             shape = MaterialTheme.shapes.extraLarge,
@@ -369,7 +378,7 @@ private fun SearchField(
                 leadingContent = { Icon(Icons.Rounded.Place, null) },
                 supportingContent = { Text(suggestion.context) },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            ) { Text("Rechercher autour de ${suggestion.label}") }
+            ) { Text(t("Rechercher autour de ${suggestion.label}", "Search around ${suggestion.label}")) }
         }
     }
 }

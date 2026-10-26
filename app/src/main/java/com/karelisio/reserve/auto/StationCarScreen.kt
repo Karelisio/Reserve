@@ -18,6 +18,7 @@ import com.karelisio.reserve.container
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.RankedStation
+import com.karelisio.reserve.domain.t
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -35,33 +36,43 @@ class StationCarScreen(carContext: CarContext, private val item: RankedStation) 
         val rows = buildList {
             add(
                 Row.Builder()
-                    .setTitle("${item.price.fuel.label} : ${Format.price(item.effectivePrice)}")
-                    .addText("${Format.distance(item.distanceKm)} · mis à jour ${Format.age(item.price.updatedAt)}")
+                    .setTitle(t("${item.price.fuel.label} : ${Format.price(item.effectivePrice)}", "${item.price.fuel.label}: ${Format.price(item.effectivePrice)}"))
+                    .addText(
+                        t(
+                            "${Format.distance(item.distanceKm)} · mis à jour ${Format.age(item.price.updatedAt)}",
+                            "${Format.distance(item.distanceKm)} · updated ${Format.age(item.price.updatedAt)}",
+                        ),
+                    )
                     .build(),
             )
             add(Row.Builder().setTitle(station.fullAddress.ifBlank { station.city }).apply {
-                if (station.automate24) addText("Automate CB 24/24")
+                if (station.automate24) addText(t("Automate CB 24/24", "24/7 card pump"))
             }.build())
             station.prices.filter { it.fuel != item.price.fuel }.sortedBy { it.fuel.ordinal }.forEach { other ->
-                add(Row.Builder().setTitle("${other.fuel.label} : ${Format.price(other.price)}").addText(Format.age(other.updatedAt)).build())
+                add(
+                    Row.Builder()
+                        .setTitle(t("${other.fuel.label} : ${Format.price(other.price)}", "${other.fuel.label}: ${Format.price(other.price)}"))
+                        .addText(Format.age(other.updatedAt))
+                        .build(),
+                )
             }
         }.take(limit.coerceAtLeast(2))
 
         val pane = Pane.Builder().apply { rows.forEach { addRow(it) } }
             .addAction(
                 Action.Builder()
-                    .setTitle("Y aller")
+                    .setTitle(t("Y aller", "Go there"))
                     .apply { if (carContext.carAppApiLevel >= 4) setFlags(Action.FLAG_PRIMARY) }
                     .setOnClickListener { navigate() }
                     .build(),
             )
             .addAction(
                 Action.Builder()
-                    .setTitle("Favori")
+                    .setTitle(t("Favori", "Favourite"))
                     .setOnClickListener {
                         lifecycleScope.launch {
                             carContext.container.stations.addFavorite(station)
-                            CarToast.makeText(carContext, "Ajouté aux favoris", CarToast.LENGTH_SHORT).show()
+                            CarToast.makeText(carContext, t("Ajouté aux favoris", "Added to favourites"), CarToast.LENGTH_SHORT).show()
                         }
                     }
                     .build(),
@@ -83,7 +94,7 @@ class StationCarScreen(carContext: CarContext, private val item: RankedStation) 
                 carContext.container.stations.rememberTrip(item.station, item.price.fuel, item.effectivePrice)
             }
         } catch (e: Exception) {
-            CarToast.makeText(carContext, "Aucune application de navigation", CarToast.LENGTH_LONG).show()
+            CarToast.makeText(carContext, t("Aucune application de navigation", "No navigation app"), CarToast.LENGTH_LONG).show()
         }
     }
 }
@@ -104,7 +115,7 @@ class FuelChoiceCarScreen(carContext: CarContext, private val onChosen: () -> Un
     @Suppress("DEPRECATION")
     override fun onGetTemplate(): Template {
         val fuels = Fuel.selectableEntries
-        val current = selected ?: return ListTemplate.Builder().setTitle("Carburant").setHeaderAction(Action.BACK).setLoading(true).build()
+        val current = selected ?: return ListTemplate.Builder().setTitle(t("Carburant", "Fuel")).setHeaderAction(Action.BACK).setLoading(true).build()
         val list = ItemList.Builder().apply {
             fuels.forEach { addItem(Row.Builder().setTitle(it.label).build()) }
             setSelectedIndex(fuels.indexOf(current).coerceAtLeast(0))
@@ -117,7 +128,7 @@ class FuelChoiceCarScreen(carContext: CarContext, private val onChosen: () -> Un
             }
         }.build()
         return ListTemplate.Builder()
-            .setTitle("Carburant")
+            .setTitle(t("Carburant", "Fuel"))
             .setHeaderAction(Action.BACK)
             .setSingleList(list)
             .build()

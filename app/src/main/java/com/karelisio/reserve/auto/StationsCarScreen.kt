@@ -27,6 +27,7 @@ import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Pricing
 import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.domain.Vehicle
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.theme.GreenLightScheme
 import com.karelisio.reserve.ui.theme.PriceColors
 import com.karelisio.reserve.work.Surfaces
@@ -62,7 +63,7 @@ class StationsCarScreen(carContext: CarContext) : Screen(carContext) {
         }
         error = when {
             result == null && !hasLocation() -> null
-            result == null -> "Prix indisponibles. Vérifiez la connexion du téléphone."
+            result == null -> t("Prix indisponibles. Vérifiez la connexion du téléphone.", "Prices unavailable. Check the phone's connection.")
             else -> null
         }
         stations = if (result == null) emptyList() else {
@@ -84,12 +85,14 @@ class StationsCarScreen(carContext: CarContext) : Screen(carContext) {
     @Suppress("DEPRECATION")
     override fun onGetTemplate(): Template {
         if (!hasLocation()) {
-            return MessageTemplate.Builder("Autorisez la localisation pour trouver les stations autour de vous.")
+            return MessageTemplate.Builder(
+                t("Autorisez la localisation pour trouver les stations autour de vous.", "Allow location access to find stations around you."),
+            )
                 .setTitle("Reserve")
                 .setHeaderAction(Action.APP_ICON)
                 .addAction(
                     Action.Builder()
-                        .setTitle("Autoriser")
+                        .setTitle(t("Autoriser", "Allow"))
                         .setOnClickListener {
                             carContext.requestPermissions(
                                 listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
@@ -104,18 +107,18 @@ class StationsCarScreen(carContext: CarContext) : Screen(carContext) {
         }
 
         val builder = PlaceListMapTemplate.Builder()
-            .setTitle(if (fuelLabel.isEmpty()) "Reserve" else "$fuelLabel · moins cher")
+            .setTitle(if (fuelLabel.isEmpty()) "Reserve" else t("$fuelLabel · moins cher", "$fuelLabel · cheapest"))
             .setHeaderAction(Action.APP_ICON)
             .setCurrentLocationEnabled(true)
             .setActionStrip(
                 ActionStrip.Builder()
                     .addAction(
-                        Action.Builder().setTitle("Carburant")
+                        Action.Builder().setTitle(t("Carburant", "Fuel"))
                             .setOnClickListener { screenManager.push(FuelChoiceCarScreen(carContext) { lifecycleScope.launch { load(refresh = false) } }) }
                             .build(),
                     )
                     .addAction(
-                        Action.Builder().setTitle("Actualiser")
+                        Action.Builder().setTitle(t("Actualiser", "Refresh"))
                             .setOnClickListener { lifecycleScope.launch { load(refresh = true) } }
                             .build(),
                     )
@@ -130,7 +133,7 @@ class StationsCarScreen(carContext: CarContext) : Screen(carContext) {
         val prices = shown.map { it.effectivePrice }
         val range = if (prices.isEmpty()) null else prices.min()..prices.max()
 
-        val items = ItemList.Builder().setNoItemsMessage(error ?: "Aucune station dans le rayon choisi")
+        val items = ItemList.Builder().setNoItemsMessage(error ?: t("Aucune station dans le rayon choisi", "No stations within the chosen radius"))
         shown.forEachIndexed { index, item ->
             items.addItem(row(item, index, range))
         }

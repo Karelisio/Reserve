@@ -47,6 +47,7 @@ import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.RankedStation
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.ActiveFilters
 import com.karelisio.reserve.ui.components.FuelSelector
 import com.karelisio.reserve.ui.components.PriceBadge
@@ -132,7 +133,7 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit, onOpenCharging: 
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             SmallFloatingActionButton(onClick = { haptics.tick(); cameraKey++ }) {
-                Icon(Icons.Rounded.MyLocation, contentDescription = "Recentrer")
+                Icon(Icons.Rounded.MyLocation, contentDescription = t("Recentrer", "Recentre map"))
             }
             AnimatedVisibility(
                 visible = selected != null,
@@ -194,7 +195,7 @@ private fun SelectedStationCard(
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(onClick = onOpen) {
-                    Text("Voir la fiche")
+                    Text(t("Voir la fiche", "View details"))
                     Spacer(Modifier.width(6.dp))
                     Icon(Icons.AutoMirrored.Rounded.ArrowForward, null)
                 }
@@ -202,7 +203,7 @@ private fun SelectedStationCard(
                 Button(onClick = onGo) {
                     Icon(Icons.Rounded.Directions, null)
                     Spacer(Modifier.width(6.dp))
-                    Text("Y aller")
+                    Text(t("Y aller", "Go there"))
                 }
             }
         }

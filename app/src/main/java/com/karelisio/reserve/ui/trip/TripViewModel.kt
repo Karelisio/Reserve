@@ -18,6 +18,7 @@ import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.domain.Pricing
 import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.domain.Vehicle
+import com.karelisio.reserve.domain.t
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -128,7 +129,9 @@ class TripViewModel(private val app: AppContainer) : ViewModel() {
             status.value = true to null
             try {
                 val origin = app.location.current() ?: app.settings.current().lastLocation
-                    ?: throw IllegalStateException("Position indisponible : activez la localisation.")
+                    ?: throw IllegalStateException(
+                        t("Position indisponible : activez la localisation.", "Location unavailable: turn on location."),
+                    )
                 val route = osrm.route(origin, destination.position)
                 // Circles of 2.5 km every 3 km cover the whole 2 km corridor.
                 val samples = Geo.resample(route.points, 3.0).let { pts ->
@@ -140,7 +143,7 @@ class TripViewModel(private val app: AppContainer) : ViewModel() {
             } catch (e: Exception) {
                 Diagnostics.log("trajet", "Calcul du trajet impossible", e)
                 status.value = false to (e.message?.takeIf { it.isNotBlank() && e is IllegalStateException }
-                    ?: "Impossible de calculer le trajet. Vérifiez la connexion.")
+                    ?: t("Impossible de calculer le trajet. Vérifiez la connexion.", "Couldn't calculate the route. Check your connection."))
             }
         }
     }

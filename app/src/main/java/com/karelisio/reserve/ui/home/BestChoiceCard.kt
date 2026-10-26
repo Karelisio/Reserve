@@ -29,10 +29,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.RankedStation
+import com.karelisio.reserve.domain.t
 
 /** The best choice around (real cost), highlighted at the top of the list. */
 @Composable
@@ -58,7 +61,11 @@ fun BestChoiceCard(item: RankedStation, onOpen: () -> Unit, onGo: () -> Unit, mo
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Savings, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Meilleur choix · ${item.price.fuel.label}", style = MaterialTheme.typography.labelLargeEmphasized)
+                    Text(
+                        t("Meilleur choix · ${item.price.fuel.label}", "Best choice · ${item.price.fuel.label}"),
+                        style = MaterialTheme.typography.labelLargeEmphasized,
+                        modifier = Modifier.semantics { heading() },
+                    )
                 }
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
@@ -74,12 +81,18 @@ fun BestChoiceCard(item: RankedStation, onOpen: () -> Unit, onGo: () -> Unit, mo
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    "${Format.distance(item.distanceKm)} · ${Format.age(item.price.updatedAt)} · plein ${Format.euros(item.totalCost)}",
+                    t(
+                        "${Format.distance(item.distanceKm)} · ${Format.age(item.price.updatedAt)} · plein ${Format.euros(item.totalCost)}",
+                        "${Format.distance(item.distanceKm)} · ${Format.age(item.price.updatedAt)} · full tank ${Format.euros(item.totalCost)}",
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 if (item.savings > 0.05) {
                     Text(
-                        "${Format.euros(item.savings)} économisés par rapport à la station la plus proche",
+                        t(
+                            "${Format.euros(item.savings)} économisés par rapport à la station la plus proche",
+                            "${Format.euros(item.savings)} saved compared with the nearest station",
+                        ),
                         style = MaterialTheme.typography.bodySmallEmphasized,
                     )
                 }
@@ -90,10 +103,10 @@ fun BestChoiceCard(item: RankedStation, onOpen: () -> Unit, onGo: () -> Unit, mo
                     Button(onClick = onGo, contentPadding = ButtonDefaults.ButtonWithIconContentPadding) {
                         Icon(Icons.Rounded.Directions, null, Modifier.size(ButtonDefaults.IconSize))
                         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text("Y aller")
+                        Text(t("Y aller", "Go there"))
                     }
                     FilledTonalButton(onClick = onOpen) {
-                        Text("Fiche")
+                        Text(t("Fiche", "Details"))
                         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                         Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, Modifier.size(ButtonDefaults.IconSize))
                     }

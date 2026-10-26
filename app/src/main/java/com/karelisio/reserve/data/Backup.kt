@@ -15,6 +15,7 @@ import com.karelisio.reserve.data.model.SortMode
 import com.karelisio.reserve.data.model.ThemeMode
 import com.karelisio.reserve.data.remote.Http
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.t
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -85,7 +86,7 @@ class BackupManager(private val app: AppContainer) {
     suspend fun import(input: InputStream): ImportSummary {
         val text = withContext(Dispatchers.IO) { input.bufferedReader().use { it.readText() } }
         val file = Http.json.decodeFromString(BackupFile.serializer(), text)
-        require(file.format == "reserve-backup") { "Ce fichier n'est pas une sauvegarde Reserve." }
+        require(file.format == "reserve-backup") { t("Ce fichier n'est pas une sauvegarde Reserve.", "This file is not a Reserve backup.") }
         val db = app.db
         var fillUps = 0
         var cards = 0
@@ -120,7 +121,7 @@ class BackupManager(private val app: AppContainer) {
         return ImportSummary(file.favorites.size, fillUps, cards)
     }
 
-    /** Fuel log for a spreadsheet (French format: semicolons, decimal commas). */
+    /** Fuel log for a spreadsheet (semicolons; numbers and header follow the app language). */
     suspend fun exportFillUpsCsv(out: OutputStream) {
         val fillUps = app.db.fillUps().all()
         val dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
@@ -129,7 +130,12 @@ class BackupManager(private val app: AppContainer) {
         withContext(Dispatchers.IO) {
             out.bufferedWriter().use { w ->
                 w.write("\uFEFF") // BOM: accents shown correctly by spreadsheets
-                w.write("Date;Station;Carburant;Litres;Prix au litre;Total;Kilométrage;Plein complet;Prix moyen local;Économie\n")
+                w.write(
+                    t(
+                        "Date;Station;Carburant;Litres;Prix au litre;Total;Kilométrage;Plein complet;Prix moyen local;Économie\n",
+                        "Date;Station;Fuel;Litres;Price per litre;Total;Odometer;Full tank;Local average price;Saving\n",
+                    ),
+                )
                 fillUps.forEach { f ->
                     val date = dateFormat.format(Instant.ofEpochMilli(f.date).atZone(ZoneId.systemDefault()))
                     val saving = f.localAveragePrice?.let { (it - f.pricePerLiter) * f.liters }
@@ -137,7 +143,7 @@ class BackupManager(private val app: AppContainer) {
                         listOf(
                             date, cell(f.stationLabel), f.fuel.label, n(f.liters, 2), n(f.pricePerLiter, 3),
                             n(f.liters * f.pricePerLiter, 2), f.odometerKm?.toString().orEmpty(),
-                            if (f.fullTank) "oui" else "non", f.localAveragePrice?.let { n(it, 3) }.orEmpty(),
+                            if (f.fullTank) t("oui", "yes") else t("non", "no"), f.localAveragePrice?.let { n(it, 3) }.orEmpty(),
                             saving?.let { n(it, 2) }.orEmpty(),
                         ).joinToString(";") + "\n",
                     )

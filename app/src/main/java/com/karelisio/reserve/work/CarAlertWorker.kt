@@ -16,6 +16,7 @@ import com.karelisio.reserve.container
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Pricing
 import com.karelisio.reserve.domain.Vehicle
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.notifications.Notifier
 
 /** "Moins cher à 2,3 km : 1,72 €" when the phone connects to the car (at most once an hour). */
@@ -49,8 +50,14 @@ class CarAlertWorker(context: Context, params: WorkerParameters) : CoroutineWork
             applicationContext,
             Notifier.CHANNEL_CAR,
             NOTIFICATION_ID,
-            title = "Moins cher à ${Format.distance(best.distanceKm)} : ${Format.price2(best.effectivePrice)}",
-            text = "${settings.fuel.label} chez ${best.station.displayName}, ${best.station.city.lowercase().replaceFirstChar { it.titlecase() }} · ${Format.age(best.price.updatedAt)}",
+            title = t(
+                "Moins cher à ${Format.distance(best.distanceKm)} : ${Format.price2(best.effectivePrice)}",
+                "Cheapest ${Format.distance(best.distanceKm)} away: ${Format.price2(best.effectivePrice)}",
+            ),
+            text = t(
+                "${settings.fuel.label} chez ${best.station.displayName}, ${best.station.city.lowercase().replaceFirstChar { it.titlecase() }} · ${Format.age(best.price.updatedAt)}",
+                "${settings.fuel.label} at ${best.station.displayName}, ${best.station.city.lowercase().replaceFirstChar { it.titlecase() }} · ${Format.age(best.price.updatedAt)}",
+            ),
             stationId = best.station.id,
         )
         return Result.success()
@@ -60,7 +67,7 @@ class CarAlertWorker(context: Context, params: WorkerParameters) : CoroutineWork
     override suspend fun getForegroundInfo(): ForegroundInfo {
         val notification = NotificationCompat.Builder(applicationContext, Notifier.CHANNEL_BACKGROUND)
             .setSmallIcon(R.drawable.ic_stat_reserve)
-            .setContentTitle("Recherche du carburant le moins cher…")
+            .setContentTitle(t("Recherche du carburant le moins cher…", "Looking for the cheapest fuel…"))
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()
         return ForegroundInfo(FOREGROUND_ID, notification)
