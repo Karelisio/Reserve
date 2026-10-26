@@ -20,4 +20,8 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
     }
 
     fun setNavApp(navApp: NavApp) = viewModelScope.launch { app.settings.setNavApp(navApp) }
+
+    fun setAlerts(enabled: Boolean, threshold: Double?, dropCents: Double) = viewModelScope.launch {
+        app.settings.setAlerts(enabled, threshold, dropCents)
+    }
 }

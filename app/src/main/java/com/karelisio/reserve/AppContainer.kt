@@ -10,7 +10,7 @@ import com.karelisio.reserve.data.remote.OverpassApi
 import com.karelisio.reserve.location.LocationProvider
 
 /** Manual dependency container, created once by [ReserveApp]. */
-class AppContainer(context: Context) {
+class AppContainer(val context: Context) {
     val http = Http.client(context.cacheDir)
     val db = AppDatabase.create(context)
     val settings = SettingsRepository(context)

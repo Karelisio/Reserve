@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="window_background">#F9FAEF</color>
-    <color name="brand_green">#386A20</color>
+    <color name="ic_launcher_background">#3A6B2A</color>
+    <color name="widget_preview_background">#EEEFE3</color>
+    <color name="widget_preview_text">#1A1C16</color>
+    <color name="widget_preview_accent">#CDEDA3</color>
 </resources>

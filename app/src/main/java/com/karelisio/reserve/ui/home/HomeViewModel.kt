@@ -16,6 +16,7 @@ import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.domain.Pricing
 import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.domain.Vehicle
+import com.karelisio.reserve.work.Surfaces
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -108,6 +109,7 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
             if (located != null) app.settings.setLastLocation(located)
             try {
                 app.stations.searchAround(center, settings.radiusKm)
+                Surfaces.update(app.context)
                 transient.value = Transient(needsPermission = transient.value.needsPermission)
             } catch (e: Exception) {
                 val cached = app.stations.lastResult.value
