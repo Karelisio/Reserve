@@ -125,6 +125,9 @@ class TrendTest {
 }
 
 class BestDayTest {
+    @org.junit.Before
+    fun french() = java.util.Locale.setDefault(java.util.Locale.FRANCE)
+
     @Test
     fun findsCheapestWeekday() {
         val today = java.time.LocalDate.now().toEpochDay()
@@ -170,6 +173,9 @@ class BackupFormatTest {
 }
 
 class WeeklyRecapTest {
+    @org.junit.Before
+    fun french() = java.util.Locale.setDefault(java.util.Locale.FRANCE)
+
     @Test
     fun summarizesTheWeek() {
         val now = 1_700_000_000_000L

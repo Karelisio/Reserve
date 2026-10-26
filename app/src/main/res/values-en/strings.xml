@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Cheapest fuel around you: price and distance</string>
+    <string name="tile_label">Best price</string>
+</resources>
