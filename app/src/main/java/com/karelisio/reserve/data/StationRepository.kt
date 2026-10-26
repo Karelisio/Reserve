@@ -10,6 +10,8 @@ import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.SearchResult
 import com.karelisio.reserve.data.model.Station
+import com.karelisio.reserve.data.prefs.PendingFillUp
+import com.karelisio.reserve.data.prefs.SettingsRepository
 import com.karelisio.reserve.data.remote.FuelApi
 import com.karelisio.reserve.data.remote.Http
 import com.karelisio.reserve.data.remote.OsmFuelStation
@@ -29,6 +31,7 @@ import kotlin.math.cos
 
 class StationRepository(
     context: Context,
+    private val settings: SettingsRepository,
     private val fuelApi: FuelApi,
     private val overpass: OverpassApi,
     private val db: AppDatabase,
@@ -102,6 +105,13 @@ class StationRepository(
     }
 
     suspend fun removeFavorite(id: Long) = db.favorites().delete(id)
+
+    /** After "Y aller": offer to log the fill-up when the user is back in the app. */
+    suspend fun rememberTrip(station: Station, fuel: Fuel, price: Double?) {
+        settings.setPendingFillUp(
+            PendingFillUp(station.id, station.displayName, fuel, price ?: station.priceOf(fuel)?.price ?: 0.0, System.currentTimeMillis()),
+        )
+    }
 
     private suspend fun recordFavorites(stations: List<Station>) {
         val favorites = db.favorites().all().associateBy { it.stationId }

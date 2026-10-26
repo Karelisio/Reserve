@@ -87,7 +87,10 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit) {
     var askNavApp by rememberSaveable { mutableStateOf(false) }
     if (askNavApp && selected != null) {
         NavAppSheet(
-            onPick = { app -> askNavApp = false; Navigator.navigate(context, selected.station, app) },
+            onPick = { app ->
+                askNavApp = false
+                if (Navigator.navigate(context, selected.station, app)) vm.onNavigate(selected)
+            },
             onDismiss = { askNavApp = false },
         )
     }
@@ -133,7 +136,7 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit) {
                         onGo = {
                             haptics.confirm()
                             if (state.settings.navApp == NavApp.ASK) askNavApp = true
-                            else Navigator.navigate(context, item.station, state.settings.navApp)
+                            else if (Navigator.navigate(context, item.station, state.settings.navApp)) vm.onNavigate(item)
                         },
                     )
                 }

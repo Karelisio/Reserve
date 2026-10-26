@@ -144,6 +144,10 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         else app.stations.addFavorite(station)
     }
 
+    fun onNavigate(item: RankedStation) = viewModelScope.launch {
+        app.stations.rememberTrip(item.station, item.price.fuel, item.effectivePrice)
+    }
+
     companion object {
         private const val STALE_MS = 10 * 60 * 1000L
     }

@@ -79,3 +79,26 @@ class DomainTest {
         assertFalse(Brand.BP.matches("Esso"))
     }
 }
+
+class FuelLogTest {
+    private fun fill(day: Long, liters: Double, odo: Int?, full: Boolean = true, price: Double = 1.8, avg: Double? = null) =
+        com.karelisio.reserve.data.local.FillUpEntity(
+            date = 1_700_000_000_000L + day * 86_400_000L, stationId = null, stationLabel = "S",
+            fuel = Fuel.GAZOLE, liters = liters, pricePerLiter = price, odometerKm = odo, fullTank = full, localAveragePrice = avg,
+        )
+
+    @Test
+    fun consumptionBetweenFullTanks() {
+        val log = listOf(fill(0, 40.0, 10_000), fill(7, 20.0, 10_300, full = false), fill(14, 25.0, 10_700))
+        val (consumption, km) = com.karelisio.reserve.domain.FuelLog.consumption(log)
+        // 45 L burnt over 700 km.
+        assertEquals(6.43, consumption!!, 0.01)
+        assertEquals(700, km)
+    }
+
+    @Test
+    fun savingsVersusLocalAverage() {
+        val stats = com.karelisio.reserve.domain.FuelLog.stats(listOf(fill(0, 40.0, null, price = 1.75, avg = 1.80)))
+        assertEquals(2.0, stats.savings, 1e-9)
+    }
+}

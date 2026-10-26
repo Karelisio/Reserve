@@ -15,7 +15,7 @@ class AppContainer(val context: Context) {
     val db = AppDatabase.create(context)
     val settings = SettingsRepository(context)
     val location = LocationProvider(context)
-    val stations = StationRepository(context, FuelApi(http), OverpassApi(http), db)
+    val stations = StationRepository(context, settings, FuelApi(http), OverpassApi(http), db)
 }
 
 val Context.container: AppContainer

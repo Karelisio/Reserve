@@ -80,9 +80,8 @@ fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
     fun go(app: NavApp) {
         val station = state.station ?: return
         haptics.confirm()
-        if (!Navigator.navigate(context, station, app)) {
-            Toast.makeText(context, "Aucune application de navigation trouvée", Toast.LENGTH_SHORT).show()
-        }
+        if (Navigator.navigate(context, station, app)) vm.onNavigate()
+        else Toast.makeText(context, "Aucune application de navigation trouvée", Toast.LENGTH_SHORT).show()
     }
 
     Scaffold(

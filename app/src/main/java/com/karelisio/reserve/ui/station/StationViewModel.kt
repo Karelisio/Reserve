@@ -88,6 +88,12 @@ class StationViewModel(private val app: AppContainer, private val stationId: Lon
         if (state.value.isFavorite) app.stations.removeFavorite(s.id) else app.stations.addFavorite(s)
     }
 
+    /** Remembers the trip so the fill-up can be logged when the user comes back. */
+    fun onNavigate() = viewModelScope.launch {
+        val s = station.value ?: return@launch
+        app.stations.rememberTrip(s, app.settings.current().fuel, state.value.ranked?.effectivePrice)
+    }
+
     companion object {
         private const val HISTORY_MS = 90L * 24 * 3600 * 1000
     }
