@@ -49,7 +49,11 @@ class ReserveWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Responsive(setOf(SMALL, MEDIUM, LARGE))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = Surfaces.bestNearby(context)
+        val config = WidgetConfig.read(context, id)
+        val data = when (val stationId = config.stationId) {
+            null -> Surfaces.bestNearby(context, config.fuel)
+            else -> Surfaces.favorite(context, stationId, config.fuel)
+        }
         provideContent {
             GlanceTheme(colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) GlanceTheme.colors else fallbackColors) {
                 WidgetContent(context, data)
@@ -114,7 +118,7 @@ private fun Compact(data: BestNearby, best: RankedStation) {
                 maxLines = 1,
             )
             Text(
-                Format.distance(best.distanceKm),
+                if (best.outOfStock) "Rupture" else Format.distance(best.distanceKm),
                 style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
                 maxLines = 1,
             )
@@ -126,7 +130,7 @@ private fun Compact(data: BestNearby, best: RankedStation) {
 private fun Expanded(context: Context, data: BestNearby, best: RankedStation, showList: Boolean) {
     Column(modifier = GlanceModifier.fillMaxSize()) {
         Text(
-            "${data.fuel.label} · le moins cher autour",
+            if (data.pinned) "${data.fuel.label} · favori" else "${data.fuel.label} · le moins cher autour",
             style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Medium),
             maxLines = 1,
         )
@@ -141,7 +145,7 @@ private fun Expanded(context: Context, data: BestNearby, best: RankedStation, sh
                     maxLines = 1,
                 )
                 Text(
-                    "${Format.distance(best.distanceKm)} · ${Format.age(best.price.updatedAt)}",
+                    (if (best.outOfStock) "Rupture · " else "") + "${Format.distance(best.distanceKm)} · ${Format.age(best.price.updatedAt)}",
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
                     maxLines = 1,
                 )
