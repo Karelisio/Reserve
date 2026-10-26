@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Map
+import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShortNavigationBar
@@ -24,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -41,11 +43,14 @@ import com.karelisio.reserve.ui.settings.SettingsScreen
 import com.karelisio.reserve.ui.settings.SettingsViewModel
 import com.karelisio.reserve.ui.station.StationScreen
 import com.karelisio.reserve.ui.station.StationViewModel
+import com.karelisio.reserve.ui.trip.TripScreen
+import com.karelisio.reserve.ui.trip.TripViewModel
 import kotlinx.serialization.Serializable
 
 @Serializable object HomeRoute
 @Serializable object MapRoute
 @Serializable object FavoritesRoute
+@Serializable object TripRoute
 @Serializable object SettingsRoute
 @Serializable data class StationRoute(val id: Long)
 
@@ -54,6 +59,7 @@ private data class TopLevel(val route: Any, val label: String, val icon: ImageVe
 private val topLevels = listOf(
     TopLevel(HomeRoute, "Autour", Icons.AutoMirrored.Rounded.FormatListBulleted),
     TopLevel(MapRoute, "Carte", Icons.Rounded.Map),
+    TopLevel(TripRoute, "Trajet", Icons.Rounded.Route),
     TopLevel(FavoritesRoute, "Favoris", Icons.Rounded.Favorite),
 )
 
@@ -117,6 +123,15 @@ fun ReserveNavHost(openStationId: Long?, onStationOpened: () -> Unit) {
             }
             composable<MapRoute> {
                 MapScreen(vm = homeVm, onOpenStation = openStation)
+            }
+            composable<TripRoute> {
+                val home by homeVm.state.collectAsStateWithLifecycle()
+                TripScreen(
+                    vm = appViewModel { TripViewModel(it) },
+                    onOpenStation = openStation,
+                    favorites = home.favorites,
+                    onToggleFavorite = { homeVm.toggleFavorite(it) },
+                )
             }
             composable<FavoritesRoute> {
                 FavoritesScreen(
