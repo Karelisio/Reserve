@@ -17,6 +17,7 @@ object Notifier {
     const val CHANNEL_ALERTS = "price_alerts"
     const val CHANNEL_CAR = "car_alerts"
     const val CHANNEL_BACKGROUND = "background"
+    const val CHANNEL_RECAP = "weekly_recap"
 
     fun createChannels(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
@@ -29,6 +30,9 @@ object Notifier {
                     description = "Station la moins chère quand le téléphone se connecte à la voiture"
                 },
                 NotificationChannel(CHANNEL_BACKGROUND, "Mises à jour en arrière-plan", NotificationManager.IMPORTANCE_MIN),
+                NotificationChannel(CHANNEL_RECAP, "Récap hebdomadaire", NotificationManager.IMPORTANCE_LOW).apply {
+                    description = "Le dimanche : dépenses, économies et meilleur jour pour faire le plein"
+                },
             ),
         )
     }

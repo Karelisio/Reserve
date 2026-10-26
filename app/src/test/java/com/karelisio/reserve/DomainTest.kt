@@ -168,3 +168,21 @@ class BackupFormatTest {
         assertEquals(file, json.decodeFromString(com.karelisio.reserve.data.BackupFile.serializer(), text))
     }
 }
+
+class WeeklyRecapTest {
+    @Test
+    fun summarizesTheWeek() {
+        val now = 1_700_000_000_000L
+        fun fill(daysAgo: Long, liters: Double, price: Double, avg: Double?) = com.karelisio.reserve.data.local.FillUpEntity(
+            date = now - daysAgo * 86_400_000L, stationId = null, stationLabel = "S", fuel = Fuel.GAZOLE,
+            liters = liters, pricePerLiter = price, odometerKm = null, fullTank = true, localAveragePrice = avg,
+        )
+        val recap = com.karelisio.reserve.domain.WeeklyRecap.compute(
+            listOf(fill(1, 40.0, 1.70, 1.80), fill(3, 20.0, 1.75, null), fill(10, 50.0, 1.60, 1.70)), trend = null, now = now,
+        )
+        assertEquals(2, recap.fillUps)
+        assertEquals(103.0, recap.spent, 1e-9)
+        assertEquals(4.0, recap.saved, 1e-9)
+        assertTrue(recap.text().startsWith("2 pleins"))
+    }
+}

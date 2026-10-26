@@ -23,7 +23,11 @@ import com.karelisio.reserve.notifications.Notifier
 import com.karelisio.reserve.ui.components.rememberHaptics
 
 @Composable
-fun AlertsSection(settings: Settings, onChange: (enabled: Boolean, threshold: Double?, dropCents: Double) -> Unit) {
+fun AlertsSection(
+    settings: Settings,
+    onChange: (enabled: Boolean, threshold: Double?, dropCents: Double) -> Unit,
+    onWeeklyRecap: (Boolean) -> Unit = {},
+) {
     val context = LocalContext.current
     val haptics = rememberHaptics()
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -81,6 +85,18 @@ fun AlertsSection(settings: Settings, onChange: (enabled: Boolean, threshold: Do
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Récap du dimanche", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Dépenses, économies de la semaine et meilleur jour pour faire le plein.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = settings.weeklyRecap, onCheckedChange = { haptics.toggle(it); onWeeklyRecap(it) })
         }
     }
 }

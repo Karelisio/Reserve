@@ -45,6 +45,8 @@ data class Settings(
     val dynamicColor: Boolean = true,
     /** Pure black background in dark mode (OLED screens). */
     val pureBlack: Boolean = false,
+    /** Sunday notification with the week's summary. */
+    val weeklyRecap: Boolean = true,
 )
 
 /** Fill-up suggested after "Y aller", until the user logs it or dismisses it. */
@@ -90,6 +92,7 @@ class SettingsRepository(context: Context) {
         val themeMode = stringPreferencesKey("theme_mode")
         val dynamicColor = booleanPreferencesKey("dynamic_color")
         val pureBlack = booleanPreferencesKey("pure_black")
+        val weeklyRecap = booleanPreferencesKey("weekly_recap")
     }
 
     val settings: Flow<Settings> = store.data.map { p ->
@@ -117,6 +120,7 @@ class SettingsRepository(context: Context) {
             themeMode = p[Keys.themeMode]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
             dynamicColor = p[Keys.dynamicColor] ?: true,
             pureBlack = p[Keys.pureBlack] ?: false,
+            weeklyRecap = p[Keys.weeklyRecap] ?: true,
         )
     }
 
@@ -169,6 +173,8 @@ class SettingsRepository(context: Context) {
         it[Keys.nationalAverages] = values.entries.joinToString(";") { (fuel, value) -> "${fuel.name}=$value" }
         it[Keys.nationalAt] = at
     }
+
+    suspend fun setWeeklyRecap(enabled: Boolean) = store.edit { it[Keys.weeklyRecap] = enabled }
 
     suspend fun setAppearance(mode: ThemeMode, dynamicColor: Boolean, pureBlack: Boolean) = store.edit {
         it[Keys.themeMode] = mode.name

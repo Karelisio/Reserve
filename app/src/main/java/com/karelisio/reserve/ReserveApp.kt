@@ -4,6 +4,7 @@ import com.karelisio.reserve.diagnostics.Diagnostics
 import android.app.Application
 import com.karelisio.reserve.notifications.Notifier
 import com.karelisio.reserve.work.PriceRefreshWorker
+import com.karelisio.reserve.work.WeeklyRecapWorker
 
 class ReserveApp : Application() {
     lateinit var container: AppContainer
@@ -15,6 +16,7 @@ class ReserveApp : Application() {
         container = AppContainer(this)
         Notifier.createChannels(this)
         PriceRefreshWorker.schedule(this)
+        WeeklyRecapWorker.schedule(this, enabled = true)
         Shortcuts.publish(this)
     }
 }

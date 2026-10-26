@@ -9,6 +9,7 @@ import com.karelisio.reserve.data.local.DiscountUnit
 import com.karelisio.reserve.data.local.LoyaltyCardEntity
 import com.karelisio.reserve.domain.Brand
 import com.karelisio.reserve.work.Surfaces
+import com.karelisio.reserve.work.WeeklyRecapWorker
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.model.ThemeMode
 import com.karelisio.reserve.data.prefs.Settings
@@ -53,6 +54,11 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
             address = device?.address ?: current.carDeviceAddress,
             name = device?.name ?: current.carDeviceName,
         )
+    }
+
+    fun setWeeklyRecap(enabled: Boolean) = viewModelScope.launch {
+        app.settings.setWeeklyRecap(enabled)
+        WeeklyRecapWorker.schedule(app.context, enabled)
     }
 
     fun setAlerts(enabled: Boolean, threshold: Double?, dropCents: Double) = viewModelScope.launch {
