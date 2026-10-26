@@ -15,17 +15,21 @@ data class WeeklyRecap(
     fun text(): String = buildList {
         if (fillUps > 0) {
             add(
-                "$fillUps plein${if (fillUps > 1) "s" else ""} · ${Format.euros(spent)}" +
-                    if (saved > 0.05) " · ${Format.euros(saved)} économisés" else "",
+                t(
+                    "$fillUps plein${if (fillUps > 1) "s" else ""} · ${Format.euros(spent)}",
+                    "$fillUps fill-up${if (fillUps > 1) "s" else ""} · ${Format.euros(spent)}",
+                ) + if (saved > 0.05) t(" · ${Format.euros(saved)} économisés", " · ${Format.euros(saved)} saved") else "",
             )
         } else {
-            add("Aucun plein noté cette semaine")
+            add(t("Aucun plein noté cette semaine", "No fill-up logged this week"))
         }
-        trend?.bestDay?.let { add("Meilleur jour : le ${it.label} (−${Format.cents(it.gap)})") }
+        trend?.bestDay?.let {
+            add(t("Meilleur jour : le ${it.label} (−${Format.cents(it.gap)})", "Best day: ${it.label} (−${Format.cents(it.gap)})"))
+        }
         when (trend?.direction) {
-            TrendDirection.DOWN -> add("Prix en baisse : attendez si votre réservoir le permet")
-            TrendDirection.UP -> add("Prix en hausse : faites le plein tôt dans la semaine")
-            TrendDirection.STABLE -> add("Prix stables")
+            TrendDirection.DOWN -> add(t("Prix en baisse : attendez si votre réservoir le permet", "Prices falling: wait if your tank allows it"))
+            TrendDirection.UP -> add(t("Prix en hausse : faites le plein tôt dans la semaine", "Prices rising: fill up early in the week"))
+            TrendDirection.STABLE -> add(t("Prix stables", "Prices stable"))
             null -> Unit
         }
     }.joinToString(". ") + "."

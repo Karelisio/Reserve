@@ -40,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,7 @@ import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.prefs.Settings
 import com.karelisio.reserve.diagnostics.ReportDialog
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.SOURCE_MENTION
 
@@ -63,9 +66,9 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             MediumFlexibleTopAppBar(
-                title = { Text("Réglages") },
+                title = { Text(t("Réglages", "Settings")) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Retour") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = t("Retour", "Back")) }
                 },
                 scrollBehavior = scrollBehavior,
             )
@@ -91,17 +94,17 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             AlertsSection(s, vm::setAlerts, vm::setWeeklyRecap, vm::setRangeAlert)
             CarAlertSection(s, vm::setCarAlert)
             SettingsSection("Navigation") {
-                Text("Application pour « Y aller »", style = MaterialTheme.typography.bodyMedium)
+                Text(t("Application pour « Y aller »", "App for “Go there”"), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))
                 ConnectedChoice(
                     options = listOf(NavApp.ASK, NavApp.WAZE, NavApp.GOOGLE_MAPS),
                     selected = s.navApp.takeIf { it != NavApp.OTHER } ?: NavApp.ASK,
                     label = {
                         when (it) {
-                            NavApp.ASK -> "Demander"
+                            NavApp.ASK -> t("Demander", "Ask")
                             NavApp.WAZE -> "Waze"
                             NavApp.GOOGLE_MAPS -> "Maps"
-                            NavApp.OTHER -> "Autre"
+                            NavApp.OTHER -> t("Autre", "Other")
                         }
                     },
                     onSelect = vm::setNavApp,
@@ -110,29 +113,34 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             }
             PermissionsSection()
             BackupSection()
-            SettingsSection("À propos") {
+            SettingsSection(t("À propos", "About")) {
                 val context = LocalContext.current
                 Text("Reserve ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.bodyLarge)
                 if (context.container.updates.enabled) {
                     Spacer(Modifier.height(8.dp))
                     FilledTonalButton(onClick = { context.container.updates.checkNow() }) {
                         Icon(Icons.Rounded.SystemUpdate, null)
-                        Text("  Rechercher une mise à jour")
+                        Text(t("  Rechercher une mise à jour", "  Check for updates"))
                     }
                 }
                 var reporting by remember { mutableStateOf(false) }
                 OutlinedButton(onClick = { reporting = true }, modifier = Modifier.padding(top = 8.dp)) {
                     Icon(Icons.Rounded.BugReport, null)
-                    Text("  Signaler un problème")
+                    Text(t("  Signaler un problème", "  Report a problem"))
                 }
                 if (reporting) ReportDialog(crash = null, onDismiss = { reporting = false })
                 Spacer(Modifier.height(12.dp))
                 Text(SOURCE_MENTION, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Noms et enseignes des stations : © contributeurs OpenStreetMap, ODbL. " +
-                        "Fond de carte : tuiles OpenStreetMap via MapLibre. " +
-                        "Aucun compte, aucun serveur : vos données restent sur votre téléphone.",
+                    t(
+                        "Noms et enseignes des stations : © contributeurs OpenStreetMap, ODbL. " +
+                            "Fond de carte : tuiles OpenStreetMap via MapLibre. " +
+                            "Aucun compte, aucun serveur : vos données restent sur votre téléphone.",
+                        "Station names and brands: © OpenStreetMap contributors, ODbL. " +
+                            "Base map: OpenStreetMap tiles via MapLibre. " +
+                            "No account, no server: your data stays on your phone.",
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -149,7 +157,12 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() },
+            )
             Spacer(Modifier.height(12.dp))
             content()
         }

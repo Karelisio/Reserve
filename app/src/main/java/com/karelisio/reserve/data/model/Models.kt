@@ -1,21 +1,31 @@
 package com.karelisio.reserve.data.model
 
+import com.karelisio.reserve.domain.t
 import kotlinx.serialization.Serializable
 
 /** Fuels published by the official feed. [selectable] fuels can be chosen in the search. */
 @Serializable
 enum class Fuel(
     val apiKey: String,
-    val label: String,
     val apiNames: Set<String>,
     val selectable: Boolean = true,
 ) {
-    GAZOLE("gazole", "Gazole", setOf("gazole")),
-    E10("e10", "SP95-E10", setOf("e10", "sp95-e10")),
-    SP98("sp98", "SP98", setOf("sp98")),
-    E85("e85", "E85", setOf("e85")),
-    GPLC("gplc", "GPLc", setOf("gplc", "gpl")),
-    SP95("sp95", "SP95", setOf("sp95"), selectable = false);
+    GAZOLE("gazole", setOf("gazole")),
+    E10("e10", setOf("e10", "sp95-e10")),
+    SP98("sp98", setOf("sp98")),
+    E85("e85", setOf("e85")),
+    GPLC("gplc", setOf("gplc", "gpl")),
+    SP95("sp95", setOf("sp95"), selectable = false);
+
+    val label: String
+        get() = when (this) {
+            GAZOLE -> t("Gazole", "Diesel")
+            E10 -> "SP95-E10"
+            SP98 -> "SP98"
+            E85 -> "E85"
+            GPLC -> t("GPLc", "LPG")
+            SP95 -> "SP95"
+        }
 
     companion object {
         val selectableEntries = entries.filter { it.selectable }
@@ -102,16 +112,32 @@ data class SearchResult(
 )
 
 @Serializable
-enum class SortMode(val label: String) {
-    PRICE("Prix"),
-    DISTANCE("Distance"),
-    REAL_COST("Vrai coût"),
+enum class SortMode {
+    PRICE,
+    DISTANCE,
+    REAL_COST;
+
+    val label: String
+        get() = when (this) {
+            PRICE -> t("Prix", "Price")
+            DISTANCE -> "Distance"
+            REAL_COST -> t("Vrai coût", "Real cost")
+        }
 }
 
 @Serializable
 enum class NavApp { ASK, WAZE, GOOGLE_MAPS, OTHER }
 
-enum class ThemeMode(val label: String) { SYSTEM("Système"), LIGHT("Clair"), DARK("Sombre") }
+enum class ThemeMode {
+    SYSTEM, LIGHT, DARK;
+
+    val label: String
+        get() = when (this) {
+            SYSTEM -> t("Système", "System")
+            LIGHT -> t("Clair", "Light")
+            DARK -> t("Sombre", "Dark")
+        }
+}
 
 @Serializable
 data class Filters(

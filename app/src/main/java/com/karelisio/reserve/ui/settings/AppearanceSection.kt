@@ -19,13 +19,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.data.model.ThemeMode
 import com.karelisio.reserve.data.prefs.Settings
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.rememberHaptics
 
 @Composable
 fun AppearanceSection(settings: Settings, onChange: (ThemeMode, dynamicColor: Boolean, pureBlack: Boolean) -> Unit) {
     val haptics = rememberHaptics()
-    SettingsSection("Apparence") {
+    SettingsSection(t("Apparence", "Appearance")) {
         ConnectedChoice(
             options = ThemeMode.entries,
             selected = settings.themeMode,
@@ -43,14 +44,14 @@ fun AppearanceSection(settings: Settings, onChange: (ThemeMode, dynamicColor: Bo
         Spacer(Modifier.height(8.dp))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             SwitchRow(
-                title = "Couleurs dynamiques",
-                caption = "Couleurs tirées du fond d'écran ; sinon thème vert Reserve.",
+                title = t("Couleurs dynamiques", "Dynamic colours"),
+                caption = t("Couleurs tirées du fond d'écran ; sinon thème vert Reserve.", "Colours taken from your wallpaper; otherwise the Reserve green theme."),
                 checked = settings.dynamicColor,
             ) { haptics.toggle(it); onChange(settings.themeMode, it, settings.pureBlack) }
         }
         SwitchRow(
-            title = "Noir pur en mode sombre",
-            caption = "Fond noir, idéal pour les écrans OLED.",
+            title = t("Noir pur en mode sombre", "Pure black in dark mode"),
+            caption = t("Fond noir, idéal pour les écrans OLED.", "Black background, ideal for OLED screens."),
             checked = settings.pureBlack,
         ) { haptics.toggle(it); onChange(settings.themeMode, settings.dynamicColor, it) }
     }

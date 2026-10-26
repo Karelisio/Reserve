@@ -8,6 +8,7 @@ import com.karelisio.reserve.data.remote.obj
 import com.karelisio.reserve.data.remote.str
 import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.domain.Geo
+import com.karelisio.reserve.domain.t
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.FormBody
@@ -17,11 +18,29 @@ import okhttp3.Request
 import java.util.Locale
 import kotlin.math.cos
 
-enum class Plug(val label: String) { TYPE2("Type 2"), CCS("Combo CCS"), CHADEMO("CHAdeMO"), DOMESTIC("Domestique") }
+enum class Plug {
+    TYPE2, CCS, CHADEMO, DOMESTIC;
 
-enum class ChargingSource(val mention: String) {
-    IRVE("Source : fichier consolidé IRVE, data.gouv.fr (Licence Ouverte 2.0)"),
-    OSM("Source : © contributeurs OpenStreetMap (ODbL)"),
+    val label: String
+        get() = when (this) {
+            TYPE2 -> "Type 2"
+            CCS -> "Combo CCS"
+            CHADEMO -> "CHAdeMO"
+            DOMESTIC -> t("Domestique", "Household")
+        }
+}
+
+enum class ChargingSource {
+    IRVE, OSM;
+
+    val mention: String
+        get() = when (this) {
+            IRVE -> t(
+                "Source : fichier consolidé IRVE, data.gouv.fr (Licence Ouverte 2.0)",
+                "Source: IRVE consolidated file, data.gouv.fr (Licence Ouverte 2.0)",
+            )
+            OSM -> t("Source : © contributeurs OpenStreetMap (ODbL)", "Source: © OpenStreetMap contributors (ODbL)")
+        }
 }
 
 data class ChargingStation(
@@ -105,7 +124,7 @@ class ChargingRepository(private val client: OkHttpClient) {
         ).joinToString(", ").takeIf { it.isNotBlank() }
         return ChargingStation(
             id = "irve:$id",
-            name = first.str("nom_station") ?: first.str("nom_enseigne") ?: "Borne de recharge",
+            name = first.str("nom_station") ?: first.str("nom_enseigne") ?: t("Borne de recharge", "Charging station"),
             operator = first.str("nom_operateur") ?: first.str("nom_enseigne"),
             address = address,
             position = LatLon(lat, lon),
@@ -169,7 +188,7 @@ class ChargingRepository(private val client: OkHttpClient) {
         ).joinToString(", ").takeIf { it.isNotBlank() }
         return ChargingStation(
             id = "osm:${element.str("type")}/${element.str("id")}",
-            name = tags.str("name") ?: tags.str("brand") ?: tags.str("network") ?: "Borne de recharge",
+            name = tags.str("name") ?: tags.str("brand") ?: tags.str("network") ?: t("Borne de recharge", "Charging station"),
             operator = tags.str("operator") ?: tags.str("network"),
             address = address,
             position = LatLon(lat, lon),

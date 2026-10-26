@@ -38,6 +38,7 @@ import com.karelisio.reserve.data.local.DiscountUnit
 import com.karelisio.reserve.data.local.LoyaltyCardEntity
 import com.karelisio.reserve.domain.Brand
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.rememberHaptics
 
@@ -54,9 +55,12 @@ fun LoyaltySection(
 ) {
     val haptics = rememberHaptics()
     var adding by rememberSaveable { mutableStateOf(false) }
-    SettingsSection("Remises fidélité") {
+    SettingsSection(t("Remises fidélité", "Loyalty discounts")) {
         Text(
-            "Déclarez vos cartes : les prix affichés et le vrai coût tiennent compte de la remise dans les stations de l'enseigne.",
+            t(
+                "Déclarez vos cartes : les prix affichés et le vrai coût tiennent compte de la remise dans les stations de l'enseigne.",
+                "Add your cards: displayed prices and the true cost include the discount at that brand's stations.",
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -65,7 +69,7 @@ fun LoyaltySection(
                 leadingContent = { Icon(Icons.Rounded.CardMembership, null) },
                 trailingContent = {
                     IconButton(onClick = { haptics.toggle(false); onDelete(card.id) }) {
-                        Icon(Icons.Rounded.Delete, contentDescription = "Supprimer la carte")
+                        Icon(Icons.Rounded.Delete, contentDescription = t("Supprimer la carte", "Delete card"))
                     }
                 },
                 supportingContent = { Text(card.describe()) },
@@ -75,7 +79,7 @@ fun LoyaltySection(
         Spacer(Modifier.height(8.dp))
         FilledTonalButton(onClick = { haptics.tick(); adding = true }) {
             Icon(Icons.Rounded.Add, null)
-            Text("  Ajouter une carte")
+            Text(t("  Ajouter une carte", "  Add a card"))
         }
     }
 
@@ -100,7 +104,7 @@ private fun AddCardDialog(onAdd: (Brand, Double, DiscountUnit) -> Unit, onDismis
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.CardMembership, null) },
-        title = { Text("Carte de fidélité") },
+        title = { Text(t("Carte de fidélité", "Loyalty card")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
@@ -108,7 +112,7 @@ private fun AddCardDialog(onAdd: (Brand, Double, DiscountUnit) -> Unit, onDismis
                         value = brand.label,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Enseigne") },
+                        label = { Text(t("Enseigne", "Brand")) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                         modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                     )
@@ -121,14 +125,14 @@ private fun AddCardDialog(onAdd: (Brand, Double, DiscountUnit) -> Unit, onDismis
                 ConnectedChoice(
                     options = DiscountUnit.entries,
                     selected = unit,
-                    label = { if (it == DiscountUnit.CENTS_PER_LITER) "cts / litre" else "%" },
+                    label = { if (it == DiscountUnit.CENTS_PER_LITER) t("cts / litre", "c / litre") else "%" },
                     onSelect = { unit = it },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = value,
                     onValueChange = { value = it },
-                    label = { Text("Remise") },
+                    label = { Text(t("Remise", "Discount")) },
                     suffix = { Text(if (unit == DiscountUnit.CENTS_PER_LITER) "c/L" else "%") },
                     singleLine = true,
                     isError = value.isNotBlank() && parsed == null,
@@ -138,8 +142,8 @@ private fun AddCardDialog(onAdd: (Brand, Double, DiscountUnit) -> Unit, onDismis
             }
         },
         confirmButton = {
-            TextButton(onClick = { parsed?.let { onAdd(brand, it, unit) } }, enabled = parsed != null) { Text("Ajouter") }
+            TextButton(onClick = { parsed?.let { onAdd(brand, it, unit) } }, enabled = parsed != null) { Text(t("Ajouter", "Add")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler", "Cancel")) } },
     )
 }

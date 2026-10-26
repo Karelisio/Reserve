@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.container
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.rememberHaptics
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -39,7 +40,7 @@ fun BackupSection() {
             val ok = runCatching {
                 context.contentResolver.openOutputStream(uri)!!.use { backup.export(it) }
             }.isSuccess
-            Toast.makeText(context, if (ok) "Sauvegarde enregistrée" else "Échec de la sauvegarde", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, if (ok) t("Sauvegarde enregistrée", "Backup saved") else t("Échec de la sauvegarde", "Backup failed"), Toast.LENGTH_SHORT).show()
         }
     }
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -48,29 +49,43 @@ fun BackupSection() {
             val message = runCatching {
                 context.contentResolver.openInputStream(uri)!!.use { backup.import(it) }
             }.fold(
-                onSuccess = { "Restauré : ${it.favorites} favoris, ${it.fillUps} pleins, ${it.cards} cartes" },
-                onFailure = { it.message?.takeIf { m -> m.startsWith("Ce fichier") } ?: "Fichier de sauvegarde illisible" },
+                onSuccess = {
+                    t(
+                        "Restauré : ${it.favorites} favoris, ${it.fillUps} pleins, ${it.cards} cartes",
+                        "Restored: ${it.favorites} favourite${if (it.favorites == 1) "" else "s"}, " +
+                            "${it.fillUps} fill-up${if (it.fillUps == 1) "" else "s"}, " +
+                            "${it.cards} card${if (it.cards == 1) "" else "s"}",
+                    )
+                },
+                onFailure = {
+                    it.message?.takeIf { m -> m.startsWith("Ce fichier") || m.startsWith("This file") }
+                        ?: t("Fichier de sauvegarde illisible", "Unreadable backup file")
+                },
             )
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
     }
 
-    SettingsSection("Sauvegarde") {
+    SettingsSection(t("Sauvegarde", "Backup")) {
         Text(
-            "Favoris, carnet de pleins, cartes fidélité, historique et réglages dans un fichier. " +
-                "La sauvegarde Android automatique est aussi activée.",
+            t(
+                "Favoris, carnet de pleins, cartes fidélité, historique et réglages dans un fichier. " +
+                    "La sauvegarde Android automatique est aussi activée.",
+                "Favourites, fill-up log, loyalty cards, history and settings in one file. " +
+                    "Android automatic backup is also enabled.",
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilledTonalButton(onClick = { haptics.tick(); exporter.launch("reserve-sauvegarde-${LocalDate.now()}.json") }) {
+            FilledTonalButton(onClick = { haptics.tick(); exporter.launch(t("reserve-sauvegarde-${LocalDate.now()}.json", "reserve-backup-${LocalDate.now()}.json")) }) {
                 Icon(Icons.Rounded.Upload, null)
-                Text("  Exporter")
+                Text(t("  Exporter", "  Export"))
             }
             OutlinedButton(onClick = { haptics.tick(); importer.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) }) {
                 Icon(Icons.Rounded.Download, null)
-                Text("  Importer")
+                Text(t("  Importer", "  Import"))
             }
         }
     }

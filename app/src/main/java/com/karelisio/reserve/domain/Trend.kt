@@ -22,17 +22,29 @@ data class Trend(
 ) {
     val advice: String
         get() = when (direction) {
-            null -> "Historique en cours de constitution ($days/${TrendAnalyzer.MIN_DAYS} jours). Reserve relève les prix de votre zone chaque heure."
-            TrendDirection.DOWN -> "Prix en baisse (−${Format.cents(abs(perWeek))} par semaine) : si votre réservoir le permet, attendez quelques jours."
-            TrendDirection.UP -> "Prix en hausse (+${Format.cents(abs(perWeek))} par semaine) : faites le plein maintenant."
-            TrendDirection.STABLE -> "Prix stables : inutile d'attendre, visez simplement le moins cher."
+            null -> t(
+                "Historique en cours de constitution ($days/${TrendAnalyzer.MIN_DAYS} jours). Reserve relève les prix de votre zone chaque heure.",
+                "Building up history ($days/${TrendAnalyzer.MIN_DAYS} days). Reserve records the prices in your area every hour.",
+            )
+            TrendDirection.DOWN -> t(
+                "Prix en baisse (−${Format.cents(abs(perWeek))} par semaine) : si votre réservoir le permet, attendez quelques jours.",
+                "Prices falling (−${Format.cents(abs(perWeek))} per week): if your tank allows it, wait a few days.",
+            )
+            TrendDirection.UP -> t(
+                "Prix en hausse (+${Format.cents(abs(perWeek))} par semaine) : faites le plein maintenant.",
+                "Prices rising (+${Format.cents(abs(perWeek))} per week): fill up now.",
+            )
+            TrendDirection.STABLE -> t(
+                "Prix stables : inutile d'attendre, visez simplement le moins cher.",
+                "Prices stable: no need to wait, just go for the cheapest.",
+            )
         }
 
     val label: String
         get() = when (direction) {
-            null -> "Pas encore assez de données"
-            TrendDirection.DOWN -> "En baisse"
-            TrendDirection.UP -> "En hausse"
+            null -> t("Pas encore assez de données", "Not enough data yet")
+            TrendDirection.DOWN -> t("En baisse", "Falling")
+            TrendDirection.UP -> t("En hausse", "Rising")
             TrendDirection.STABLE -> "Stable"
         }
 }
@@ -40,7 +52,7 @@ data class Trend(
 /** [dayOfWeek] 1 = Monday; [gap] how much cheaper than the weekly average (€/L, positive). */
 data class BestDay(val dayOfWeek: Int, val gap: Double) {
     val label: String
-        get() = java.time.DayOfWeek.of(dayOfWeek).getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.FRANCE)
+        get() = java.time.DayOfWeek.of(dayOfWeek).getDisplayName(java.time.format.TextStyle.FULL, Lang.locale)
 }
 
 /** "Now or wait?": trend of the local average price over the last 7 days. */

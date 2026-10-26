@@ -38,6 +38,7 @@ import com.karelisio.reserve.bluetooth.CarBluetooth
 import com.karelisio.reserve.bluetooth.PairedDevice
 import com.karelisio.reserve.container
 import com.karelisio.reserve.data.prefs.Settings
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.components.rememberHaptics
 
 @Composable
@@ -64,12 +65,15 @@ fun CarAlertSection(settings: Settings, onChange: (enabled: Boolean, device: Pai
         else permissions.launch(needed.toTypedArray())
     }
 
-    SettingsSection("Alerte en voiture") {
+    SettingsSection(t("Alerte en voiture", "In-car alert")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Prévenir en montant en voiture", style = MaterialTheme.typography.bodyLarge)
+                Text(t("Prévenir en montant en voiture", "Notify me when I get in the car"), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "À la connexion Bluetooth de la voiture : « Moins cher à X km : 1,72 € » (une fois par heure au plus).",
+                    t(
+                        "À la connexion Bluetooth de la voiture : « Moins cher à X km : 1,72 € » (une fois par heure au plus).",
+                        "When the car's Bluetooth connects: “Cheaper X km away: €1.72” (at most once an hour).",
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -89,19 +93,23 @@ fun CarAlertSection(settings: Settings, onChange: (enabled: Boolean, device: Pai
                 ListItem(
                     onClick = { requestAndPick() },
                     leadingContent = { Icon(Icons.Rounded.DirectionsCar, null) },
-                    supportingContent = { Text("Appareil Bluetooth de la voiture") },
+                    supportingContent = { Text(t("Appareil Bluetooth de la voiture", "Car Bluetooth device")) },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                ) { Text(settings.carDeviceName ?: "Choisir ma voiture") }
+                ) { Text(settings.carDeviceName ?: t("Choisir ma voiture", "Choose my car")) }
                 if (!backgroundGranted && Build.VERSION.SDK_INT >= 29) {
                     Text(
-                        "Pour utiliser la position exacte au démarrage, autorisez la localisation « Toujours ». " +
-                            "Sinon, la dernière position connue est utilisée.",
+                        t(
+                            "Pour utiliser la position exacte au démarrage, autorisez la localisation « Toujours ». " +
+                                "Sinon, la dernière position connue est utilisée.",
+                            "To use your exact position when you set off, allow location “All the time”. " +
+                                "Otherwise, the last known position is used.",
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(8.dp))
                     FilledTonalButton(onClick = { backgroundPermission.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION) }) {
-                        Text("Autoriser en arrière-plan")
+                        Text(t("Autoriser en arrière-plan", "Allow in background"))
                     }
                 }
             }
@@ -113,10 +121,10 @@ fun CarAlertSection(settings: Settings, onChange: (enabled: Boolean, device: Pai
         AlertDialog(
             onDismissRequest = { picking = false },
             icon = { Icon(Icons.Rounded.Bluetooth, null) },
-            title = { Text("Ma voiture") },
+            title = { Text(t("Ma voiture", "My car")) },
             text = {
                 if (devices.isEmpty()) {
-                    Text("Aucun appareil Bluetooth associé. Associez d'abord le téléphone à la voiture.")
+                    Text(t("Aucun appareil Bluetooth associé. Associez d'abord le téléphone à la voiture.", "No paired Bluetooth devices. Pair your phone with the car first."))
                 } else {
                     LazyColumn {
                         items(devices, key = { it.address }) { device ->
@@ -133,7 +141,7 @@ fun CarAlertSection(settings: Settings, onChange: (enabled: Boolean, device: Pai
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { picking = false }) { Text("Fermer") } },
+            confirmButton = { TextButton(onClick = { picking = false }) { Text(t("Fermer", "Close")) } },
         )
     }
 }

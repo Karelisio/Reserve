@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.data.prefs.Settings
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.notifications.Notifier
 import com.karelisio.reserve.ui.components.rememberHaptics
 
@@ -34,12 +35,12 @@ fun AlertsSection(
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         onChange(granted, settings.alertThreshold, settings.alertDropCents)
     }
-    SettingsSection("Alertes de prix") {
+    SettingsSection(t("Alertes de prix", "Price alerts")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Surveiller mes favoris", style = MaterialTheme.typography.bodyLarge)
+                Text(t("Surveiller mes favoris", "Watch my favourites"), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Vérification toutes les heures, notification en cas de baisse.",
+                    t("Vérification toutes les heures, notification en cas de baisse.", "Checked every hour, notified when prices drop."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -61,7 +62,7 @@ fun AlertsSection(
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DecimalField(
-                        label = "Seuil (optionnel)",
+                        label = t("Seuil (optionnel)", "Threshold (optional)"),
                         suffix = "€/L",
                         value = settings.alertThreshold,
                         decimals = 3,
@@ -71,8 +72,8 @@ fun AlertsSection(
                         modifier = Modifier.weight(1f),
                     )
                     DecimalField(
-                        label = "Baisse d'au moins",
-                        suffix = "cts",
+                        label = t("Baisse d'au moins", "Drop of at least"),
+                        suffix = t("cts", "c"),
                         value = settings.alertDropCents,
                         decimals = 0,
                         onValue = { onChange(true, settings.alertThreshold, it) },
@@ -81,7 +82,10 @@ fun AlertsSection(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Carburant suivi : ${settings.fuel.label}. Les alertes portent sur les stations favorites.",
+                    t(
+                        "Carburant suivi : ${settings.fuel.label}. Les alertes portent sur les stations favorites.",
+                        "Tracked fuel: ${settings.fuel.label}. Alerts cover your favourite stations.",
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -90,9 +94,9 @@ fun AlertsSection(
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Récap du dimanche", style = MaterialTheme.typography.bodyLarge)
+                Text(t("Récap du dimanche", "Sunday recap"), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Dépenses, économies de la semaine et meilleur jour pour faire le plein.",
+                    t("Dépenses, économies de la semaine et meilleur jour pour faire le plein.", "Spending, weekly savings and the best day to fill up."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -102,9 +106,9 @@ fun AlertsSection(
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Alerte réserve", style = MaterialTheme.typography.bodyLarge)
+                Text(t("Alerte réserve", "Low fuel alert"), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Quand l'autonomie estimée d'après le carnet passe sous 80 km.",
+                    t("Quand l'autonomie estimée d'après le carnet passe sous 80 km.", "When the range estimated from your log drops below 80 km."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
