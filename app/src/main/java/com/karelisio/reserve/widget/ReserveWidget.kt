@@ -83,7 +83,10 @@ private fun WidgetContent(context: Context, data: BestNearby?) {
             .fillMaxSize()
             .appWidgetBackground()
             .background(GlanceTheme.colors.widgetBackground)
-            .cornerRadius(android.R.dimen.system_app_widget_background_radius)
+            .then(
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) GlanceModifier.cornerRadius(android.R.dimen.system_app_widget_background_radius)
+                else GlanceModifier,
+            )
             .clickable(ReserveWidget.openStation(context, best?.station?.id))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         contentAlignment = Alignment.CenterStart,

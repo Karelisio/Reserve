@@ -85,16 +85,16 @@ fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highl
             .background(animated, shape),
         contentAlignment = Alignment.Center,
     ) {
-        val (euros, decimals) = String.format(java.util.Locale.FRANCE, "%.3f", price).split(',')
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "$euros,${decimals.take(2)}",
+                text = String.format(java.util.Locale.FRANCE, "%.3f", price),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = PriceColors.onColor(animated),
+                maxLines = 1,
             )
             Text(
-                text = "${decimals.drop(2)} €/L",
+                text = "€/L",
                 style = MaterialTheme.typography.labelSmall,
                 color = PriceColors.onColor(animated).copy(alpha = 0.85f),
             )

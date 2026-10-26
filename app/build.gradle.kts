@@ -18,7 +18,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = (System.getenv("RESERVE_VERSION_CODE") ?: "1").toInt()
-        versionName = "1.0.0"
+        versionName = System.getenv("RESERVE_VERSION_NAME") ?: "1.0.0"
     }
 
     signingConfigs {
@@ -44,6 +44,16 @@ android {
         }
     }
 
+    // Per-ABI APKs (much smaller, MapLibre ships native code) plus a universal one.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -52,6 +62,10 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
     }
 
     packaging {
@@ -106,4 +120,9 @@ dependencies {
     implementation(libs.maplibre.android)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

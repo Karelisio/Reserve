@@ -5,6 +5,8 @@ import com.karelisio.reserve.data.model.Station
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.json.JsonObject
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -16,6 +18,9 @@ import java.util.Locale
  * Free, no key, refreshed every 10 minutes. Licence Ouverte 2.0.
  */
 class FuelApi(private val client: OkHttpClient) {
+
+    /** Long routes need many requests: stay polite with the public API. */
+    private val concurrency = Semaphore(4)
 
     suspend fun stationsAround(center: LatLon, radiusKm: Double): List<Station> =
         query(withinDistance(center, radiusKm))
@@ -34,7 +39,7 @@ class FuelApi(private val client: OkHttpClient) {
     }
 
     private fun withinDistance(point: LatLon, radiusKm: Double) = String.format(
-        Locale.ROOT, "within_distance(geom, geom'POINT(%.6f %.6f)', %.2fkm)", point.lon, point.lat, radiusKm,
+        Locale.ROOT, "within_distance(geom, geom'POINT(%.6f %.6f)', %dm)", point.lon, point.lat, (radiusKm * 1000).toInt(),
     )
 
     private suspend fun query(where: String): List<Station> = coroutineScope {
@@ -48,16 +53,16 @@ class FuelApi(private val client: OkHttpClient) {
 
     private class Page(val total: Int, val stations: List<Station>)
 
-    private suspend fun page(where: String, offset: Int): Page {
+    private suspend fun page(where: String, offset: Int): Page = concurrency.withPermit {
         val url = BASE_URL.toHttpUrl().newBuilder()
             .addQueryParameter("where", where)
             .addQueryParameter("order_by", "id")
             .addQueryParameter("limit", PAGE_SIZE.toString())
             .addQueryParameter("offset", offset.toString())
             .build()
-        val root = client.getJson(Request.Builder().url(url).build()).obj() ?: return Page(0, emptyList())
+        val root = client.getJson(Request.Builder().url(url).build()).obj() ?: return@withPermit Page(0, emptyList())
         val results = root["results"].arr().orEmpty().mapNotNull { (it as? JsonObject)?.let(StationParser::parse) }
-        return Page(root.lng("total_count")?.toInt() ?: results.size, results)
+        Page(root.lng("total_count")?.toInt() ?: results.size, results)
     }
 
     companion object {
