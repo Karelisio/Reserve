@@ -8,8 +8,10 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.rounded.Favorite
@@ -17,10 +19,13 @@ import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ShortNavigationBar
-import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,8 +33,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -156,47 +163,45 @@ fun ReserveNavHost(
         }
     }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0),
-        bottomBar = {
-            if (isTopLevel) {
-                ShortNavigationBar {
-                    topLevels.forEach { top ->
-                        val selected = destination?.hasRoute(top.route::class) == true
-                        ShortNavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                haptics.tick()
-                                nav.navigate(top.route) {
-                                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(top.icon, null) },
-                            label = { Text(top.label) },
-                        )
-                    }
-                }
+    // Bottom bar on phones, navigation rail on tablets and unfolded foldables.
+    val adaptiveLayout = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
+    NavigationSuiteScaffold(
+        layoutType = if (isTopLevel) adaptiveLayout else NavigationSuiteType.None,
+        navigationSuiteItems = {
+            topLevels.forEach { top ->
+                item(
+                    selected = destination?.hasRoute(top.route::class) == true,
+                    onClick = {
+                        haptics.tick()
+                        nav.navigate(top.route) {
+                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    icon = { Icon(top.icon, null) },
+                    label = { Text(top.label) },
+                )
             }
         },
-    ) { padding ->
+    ) {
         NavHost(
             navController = nav,
             startDestination = HomeRoute,
-            modifier = Modifier.padding(padding),
             enterTransition = { fadeIn() + scaleIn(initialScale = 0.96f) },
             exitTransition = { fadeOut() },
             popEnterTransition = { fadeIn() },
             popExitTransition = { fadeOut() + scaleOut(targetScale = 0.96f) },
         ) {
             composable<HomeRoute> {
+                ListDetail(openStation) { onOpen ->
                 HomeScreen(
                     vm = homeVm,
-                    onOpenStation = openStation,
+                    onOpenStation = onOpen,
                     onOpenSettings = { nav.navigate(SettingsRoute) },
                     onOpenCharging = { nav.navigate(ChargingRoute) },
                 )
+                }
             }
             composable<MapRoute> {
                 MapScreen(vm = homeVm, onOpenStation = openStation, onOpenCharging = { nav.navigate(ChargingRoute) })
@@ -214,11 +219,14 @@ fun ReserveNavHost(
                 FuelLogScreen(vm = logVm, startAdding = addFillUp, onStartAddingHandled = { addFillUp = false })
             }
             composable<FavoritesRoute> {
+                val favoritesVm = appViewModel { FavoritesViewModel(it) }
+                ListDetail(openStation) { onOpen ->
                 FavoritesScreen(
-                    vm = appViewModel { FavoritesViewModel(it) },
-                    onOpenStation = openStation,
+                    vm = favoritesVm,
+                    onOpenStation = onOpen,
                     onOpenAlerts = { nav.navigate(SettingsRoute) },
                 )
+                }
             }
             composable<StationRoute>(
                 enterTransition = { slideInHorizontally { it / 3 } + fadeIn() },
@@ -238,6 +246,37 @@ fun ReserveNavHost(
                 popExitTransition = { slideOutHorizontally { it / 3 } + fadeOut() },
             ) {
                 SettingsScreen(vm = appViewModel { SettingsViewModel(it) }, onBack = { nav.popBackStack() })
+            }
+        }
+    }
+}
+
+/**
+ * On wide screens (840 dp and more), the station opens next to the list instead of on
+ * top of it; on phones, [openStation] navigates as usual.
+ */
+@Composable
+private fun ListDetail(openStation: (Long) -> Unit, list: @Composable (onOpen: (Long) -> Unit) -> Unit) {
+    BoxWithConstraints {
+        if (maxWidth < 840.dp) {
+            list(openStation)
+            return@BoxWithConstraints
+        }
+        var selected by rememberSaveable { mutableStateOf<Long?>(null) }
+        Row(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(0.45f)) { list { selected = it } }
+            VerticalDivider()
+            Box(Modifier.weight(0.55f), contentAlignment = Alignment.Center) {
+                val id = selected
+                if (id == null) {
+                    Text(
+                        "Choisissez une station pour voir sa fiche",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    StationScreen(vm = appViewModel(key = "station-$id") { StationViewModel(it, id) }, onBack = { selected = null })
+                }
             }
         }
     }
