@@ -1,0 +1,24 @@
+# Gradle / IDE
+.gradle/
+build/
+/captures
+.idea/
+*.iml
+.kotlin/
+.externalNativeBuild
+.cxx/
+local.properties
+
+# Secrets: never commit signing material or keys
+*.jks
+*.keystore
+*.p12
+*.pem
+keystore.properties
+signing.properties
+secrets.properties
+.env
+
+# OS
+.DS_Store
+Thumbs.db
