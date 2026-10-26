@@ -163,9 +163,20 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
             }
         }
         viewModelScope.launch { national.value = app.stations.nationalAverages() }
-        viewModelScope.launch {
-            val cached = app.stations.loadCache()
-            if (cached == null || System.currentTimeMillis() - cached.fetchedAt > STALE_MS) refresh()
+    }
+
+    /**
+     * At launch and each return to the app: new prices when the user has moved or the prices
+     * are old. The hourly task may have refreshed the cache around an older position.
+     */
+    fun onResume() {
+        if (refreshJob?.isActive == true || place.value != null) return
+        refreshJob = viewModelScope.launch {
+            val cached = app.stations.lastResult.value ?: app.stations.loadCache()
+            val here = app.location.current(timeoutMs = 8_000)
+            val moved = here != null && cached != null && Geo.distanceKm(here, cached.center) > MOVED_KM
+            val stale = cached == null || System.currentTimeMillis() - cached.fetchedAt > STALE_MS
+            if (moved || stale) load(here)
         }
     }
 
@@ -190,35 +201,39 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         place.value?.let { searchPlace(it.label, it.center); return }
         refreshJob = viewModelScope.launch {
             transient.value = transient.value.copy(loading = true, error = null)
-            val settings = app.settings.current()
-            val located = app.location.current()
-            if (located == null && !app.location.hasPermission()) {
-                transient.value = Transient(needsPermission = true)
-                if (settings.lastLocation == null) return@launch
-            }
-            val center = located ?: settings.lastLocation ?: app.stations.lastResult.value?.center
-            if (center == null) {
-                transient.value = Transient(
-                    error = t(
-                        "Position indisponible. Activez la localisation puis réessayez.",
-                        "Location unavailable. Turn on location and try again.",
-                    ),
-                )
-                return@launch
-            }
-            if (located != null) app.settings.setLastLocation(located)
-            try {
-                app.stations.searchAround(center, settings.radiusKm)
-                Surfaces.update(app.context)
-                transient.value = Transient(needsPermission = transient.value.needsPermission)
-            } catch (e: Exception) {
-                Diagnostics.log("prix", "Actualisation impossible", e)
-                val cached = app.stations.lastResult.value
-                transient.value = Transient(
-                    error = if (cached != null) t("Hors ligne : prix du ${Format.dateTime(cached.fetchedAt)}", "Offline: prices from ${Format.dateTime(cached.fetchedAt)}")
-                    else t("Impossible de joindre data.economie.gouv.fr. Vérifiez la connexion.", "Can't reach data.economie.gouv.fr. Check your connection."),
-                )
-            }
+            load(app.location.current())
+        }
+    }
+
+    private suspend fun load(located: LatLon?) {
+        transient.value = transient.value.copy(loading = true, error = null)
+        val settings = app.settings.current()
+        if (located == null && !app.location.hasPermission()) {
+            transient.value = Transient(needsPermission = true)
+            if (settings.lastLocation == null) return
+        }
+        val center = located ?: settings.lastLocation ?: app.stations.lastResult.value?.center
+        if (center == null) {
+            transient.value = Transient(
+                error = t(
+                    "Position indisponible. Activez la localisation puis réessayez.",
+                    "Location unavailable. Turn on location and try again.",
+                ),
+            )
+            return
+        }
+        if (located != null) app.settings.setLastLocation(located)
+        try {
+            app.stations.searchAround(center, settings.radiusKm)
+            Surfaces.update(app.context)
+            transient.value = Transient(needsPermission = transient.value.needsPermission)
+        } catch (e: Exception) {
+            Diagnostics.log("prix", "Actualisation impossible", e)
+            val cached = app.stations.lastResult.value
+            transient.value = Transient(
+                error = if (cached != null) t("Hors ligne : prix du ${Format.dateTime(cached.fetchedAt)}", "Offline: prices from ${Format.dateTime(cached.fetchedAt)}")
+                else t("Impossible de joindre data.economie.gouv.fr. Vérifiez la connexion.", "Can't reach data.economie.gouv.fr. Check your connection."),
+            )
         }
     }
 
@@ -310,5 +325,6 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
 
     companion object {
         private const val STALE_MS = 10 * 60 * 1000L
+        private const val MOVED_KM = 1.0
     }
 }

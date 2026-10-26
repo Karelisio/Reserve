@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
@@ -145,21 +146,27 @@ fun ReserveNavHost(
     UpdateDialog()
     PendingCrashDialog()
 
+    // New prices at launch and on each return when the user has moved.
+    LifecycleResumeEffect(homeVm) {
+        homeVm.onResume()
+        onPauseOrDispose { }
+    }
+
     // After "Y aller", offer to log the fill-up when the user comes back.
     val logVm = appViewModel(owner = activity) { FuelLogViewModel(it) }
     val pending by logVm.pending.collectAsStateWithLifecycle()
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
-    var promptHiddenFor by rememberSaveable { mutableStateOf<Long?>(null) }
     val now = remember(lifecycleState, pending) { System.currentTimeMillis() }
     pending?.let { trip ->
         val age = now - trip.at
         when {
             age > 12 * 3600 * 1000L -> LaunchedEffect(trip) { logVm.dismissPending() }
-            age >= 3 * 60 * 1000L && lifecycleState.isAtLeast(Lifecycle.State.RESUMED) && promptHiddenFor != trip.at -> FillUpSheet(
+            age >= 3 * 60 * 1000L && lifecycleState.isAtLeast(Lifecycle.State.RESUMED) -> FillUpSheet(
                 draft = FillUpDraft(trip.stationId, trip.label, trip.fuel, trip.price.takeIf { it > 0 }),
                 lastOdometer = logVm.lastOdometer(),
                 onSave = { draft, liters, price, odo, full -> logVm.save(draft, liters, price, odo, full) },
-                onDismiss = { promptHiddenFor = trip.at },
+                // Asked once: closing the sheet counts as "no fill-up".
+                onDismiss = { logVm.dismissPending() },
                 onSkip = { logVm.dismissPending() },
             )
         }

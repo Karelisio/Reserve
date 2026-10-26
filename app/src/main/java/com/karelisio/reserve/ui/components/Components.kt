@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.EvStation
@@ -26,6 +27,7 @@ import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -49,6 +51,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.theme.PriceColors
@@ -184,7 +187,7 @@ fun <T> ConnectedChoice(
                     Icon(icon(option), null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                 }
-                Text(label(option), maxLines = 1)
+                Text(label(option), maxLines = 1, autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = LocalTextStyle.current.fontSize))
             }
         }
     }
