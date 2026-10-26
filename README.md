@@ -24,6 +24,8 @@ Package : `com.karelisio.reserve` · minSdk 26 · targetSdk 36 · compileSdk 37
 - Remises fidélité : cartes déclarées (Leclerc, TotalEnergies, Intermarché…) appliquées aux prix affichés.
 - Filtres : 24/24 avec automate CB, lavage, gonflage, boutique, exclure l'autoroute.
 - Tuile de réglages rapides : meilleur prix autour de vous.
+- Mise à jour intégrée depuis les Releases GitHub (vérification au lancement, téléchargement de l'APK adapté au téléphone, installation confirmée par Android).
+- Toutes les autorisations demandées au lancement (localisation, notifications, Bluetooth, puis localisation « Toujours » et installation des mises à jour, expliquées avant) ; état et raccourcis dans Réglages → Autorisations.
 - Android Auto (Car App Library, catégorie `androidx.car.app.category.FUEL`) : stations les moins chères sur la carte du véhicule, fiche et lancement de la navigation.
 
 ## Sources de données
@@ -51,7 +53,9 @@ Les APK sont produits par ABI (`arm64-v8a`, `armeabi-v7a`, `x86_64`) et en versi
 
 ## APK release signé (GitHub Actions)
 
-Le workflow `.github/workflows/android.yml` lance les tests à chaque push et pull request, puis, sur `main`, sur un tag `v*` ou en lancement manuel, construit l'APK release signé et le publie en artefact.
+Le workflow `.github/workflows/android.yml` lance les tests à chaque push et pull request, puis, sur `main`, sur un tag `v*` ou en lancement manuel, construit l'APK release signé, le publie en artefact **et crée une Release GitHub** (`v1.0.<n°>` ou le tag poussé) avec les APK `reserve-<version>-<versionCode>-<abi>.apk`.
+
+La mise à jour intégrée lit la dernière Release (`/releases/latest`) et compare son `versionCode` (numéro d'exécution de la CI) à celui installé. Elle n'est active que dans les builds release : un build debug (`.debug`) ne peut pas être remplacé par un APK release. Première installation : télécharger l'APK depuis la page Releases ; les suivantes se font depuis l'appli.
 
 Aucune clé ni keystore n'est commité. Créez le keystore en local, hors du dépôt :
 
@@ -83,6 +87,9 @@ Pour une appli installée hors Play Store : dans Android Auto, *Paramètres → 
 - Localisation (au premier lancement) ; « Toujours » en option pour l'alerte en voiture (sinon dernière position connue).
 - Notifications : alertes de prix et alerte en voiture.
 - Bluetooth (connexion) : choix de la voiture et détection de la connexion.
+- Installation d'applications : mises à jour intégrées.
+
+Toutes sont demandées au premier lancement ; les permissions système refusées deux fois ne sont plus proposées par Android (passer par Réglages → Autorisations).
 
 ## Architecture
 

@@ -16,8 +16,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
@@ -35,10 +37,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.karelisio.reserve.BuildConfig
+import com.karelisio.reserve.container
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.prefs.Settings
 import com.karelisio.reserve.domain.Format
@@ -98,7 +103,18 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+            PermissionsSection()
             SettingsSection("À propos") {
+                val context = LocalContext.current
+                Text("Reserve ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.bodyLarge)
+                if (context.container.updates.enabled) {
+                    Spacer(Modifier.height(8.dp))
+                    FilledTonalButton(onClick = { context.container.updates.checkNow() }) {
+                        Icon(Icons.Rounded.SystemUpdate, null)
+                        Text("  Rechercher une mise à jour")
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
                 Text(SOURCE_MENTION, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))
                 Text(

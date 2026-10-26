@@ -19,6 +19,8 @@ android {
         targetSdk = 36
         versionCode = (System.getenv("RESERVE_VERSION_CODE") ?: "1").toInt()
         versionName = System.getenv("RESERVE_VERSION_NAME") ?: "1.0.0"
+        // In-app updates come from the GitHub releases of this repository.
+        buildConfigField("String", "GITHUB_REPO", "\"Karelisio/Reserve\"")
     }
 
     signingConfigs {
@@ -38,9 +40,12 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
+            buildConfigField("boolean", "UPDATES_ENABLED", "true")
         }
         debug {
             applicationIdSuffix = ".debug"
+            // A debug build cannot be replaced by a release APK (other id, other key).
+            buildConfigField("boolean", "UPDATES_ENABLED", "false")
         }
     }
 

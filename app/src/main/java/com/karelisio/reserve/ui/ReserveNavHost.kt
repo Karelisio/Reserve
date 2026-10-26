@@ -41,6 +41,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.karelisio.reserve.container
 import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.ui.favorites.FavoritesScreen
 import com.karelisio.reserve.ui.fuellog.FillUpDraft
@@ -51,12 +52,14 @@ import com.karelisio.reserve.ui.favorites.FavoritesViewModel
 import com.karelisio.reserve.ui.home.HomeScreen
 import com.karelisio.reserve.ui.home.HomeViewModel
 import com.karelisio.reserve.ui.map.MapScreen
+import com.karelisio.reserve.ui.permissions.LaunchPermissions
 import com.karelisio.reserve.ui.settings.SettingsScreen
 import com.karelisio.reserve.ui.settings.SettingsViewModel
 import com.karelisio.reserve.ui.station.StationScreen
 import com.karelisio.reserve.ui.station.StationViewModel
 import com.karelisio.reserve.ui.trip.TripScreen
 import com.karelisio.reserve.ui.trip.TripViewModel
+import com.karelisio.reserve.ui.update.UpdateDialog
 import kotlinx.serialization.Serializable
 
 @Serializable object HomeRoute
@@ -97,6 +100,13 @@ fun ReserveNavHost(openStationId: Long?, onStationOpened: () -> Unit) {
     }
 
     val openStation: (Long) -> Unit = { id -> nav.navigate(StationRoute(id)) }
+
+    // Every permission is asked at launch, then the app looks for an update.
+    LaunchPermissions(
+        onLocationResult = homeVm::onLocationPermissionResult,
+        onDone = { activity.container.updates.checkOnLaunch() },
+    )
+    UpdateDialog()
 
     // After "Y aller", offer to log the fill-up when the user comes back.
     val logVm = appViewModel(owner = activity) { FuelLogViewModel(it) }

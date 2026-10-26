@@ -74,6 +74,9 @@ class SettingsRepository(context: Context) {
         val pendingFuel = stringPreferencesKey("pending_fuel")
         val pendingPrice = doublePreferencesKey("pending_price")
         val pendingAt = longPreferencesKey("pending_at")
+        val lastUpdateCheck = longPreferencesKey("last_update_check")
+        val askedBackground = booleanPreferencesKey("asked_background_location")
+        val askedInstall = booleanPreferencesKey("asked_install_packages")
     }
 
     val settings: Flow<Settings> = store.data.map { p ->
@@ -161,6 +164,16 @@ class SettingsRepository(context: Context) {
         it[Keys.lastLat] = location.lat
         it[Keys.lastLon] = location.lon
     }
+
+    suspend fun lastUpdateCheck(): Long = store.data.first()[Keys.lastUpdateCheck] ?: 0L
+
+    suspend fun setLastUpdateCheck(at: Long) = store.edit { it[Keys.lastUpdateCheck] = at }
+
+    /** Special permissions (background location, app installs) are proposed once at launch. */
+    suspend fun wasAsked(background: Boolean): Boolean =
+        store.data.first()[if (background) Keys.askedBackground else Keys.askedInstall] ?: false
+
+    suspend fun setAsked(background: Boolean) = store.edit { it[if (background) Keys.askedBackground else Keys.askedInstall] = true }
 
     suspend fun setPendingFillUp(pending: PendingFillUp?) = store.edit {
         if (pending == null) {
