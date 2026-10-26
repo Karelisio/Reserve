@@ -60,7 +60,7 @@ fun CarAlertSection(settings: Settings, onChange: (enabled: Boolean, device: Pai
             if (Build.VERSION.SDK_INT >= 31) add(Manifest.permission.BLUETOOTH_CONNECT)
             if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
         }
-        if (needed.isEmpty() || CarBluetooth.hasPermission(context) && Build.VERSION.SDK_INT < 33) picking = true
+        if (needed.isEmpty() || CarBluetooth.hasPermission(context) && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) picking = true
         else permissions.launch(needed.toTypedArray())
     }
 

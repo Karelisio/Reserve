@@ -70,6 +70,12 @@ android {
         buildConfig = true
     }
 
+    lint {
+        abortOnError = true
+        // Version suggestions are handled manually (beta Material 3 Expressive, target SDK).
+        disable += setOf("NewerVersionAvailable", "GradleDependency", "OldTargetApi", "AndroidGradlePluginVersion")
+    }
+
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }

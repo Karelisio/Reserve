@@ -15,7 +15,7 @@ class ReserveCarAppService : CarAppService() {
             HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
         } else {
             HostValidator.Builder(applicationContext)
-                .addAllowedHosts(androidx.car.app.R.array.hosts_allowlist_sample)
+                .addAllowedHosts(com.karelisio.reserve.R.array.car_hosts_allowlist)
                 .build()
         }
 

@@ -122,7 +122,7 @@ class BackupManager(private val app: AppContainer) {
         fun cell(text: String) = if (text.contains(';') || text.contains('"')) "\"${text.replace("\"", "\"\"")}\"" else text
         withContext(Dispatchers.IO) {
             out.bufferedWriter().use { w ->
-                w.write("﻿") // BOM: accents shown correctly by spreadsheets
+                w.write("\uFEFF") // BOM: accents shown correctly by spreadsheets
                 w.write("Date;Station;Carburant;Litres;Prix au litre;Total;Kilométrage;Plein complet;Prix moyen local;Économie\n")
                 fillUps.forEach { f ->
                     val date = dateFormat.format(Instant.ofEpochMilli(f.date).atZone(ZoneId.systemDefault()))

@@ -2,6 +2,7 @@ package com.karelisio.reserve.ui
 
 import com.karelisio.reserve.diagnostics.PendingCrashDialog
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -30,7 +31,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -97,7 +97,7 @@ fun ReserveNavHost(
     val backStack by nav.currentBackStackEntryAsState()
     val destination = backStack?.destination
     val isTopLevel = topLevels.any { top -> destination?.hasRoute(top.route::class) == true }
-    val activity = LocalContext.current as ComponentActivity
+    val activity = LocalActivity.current as ComponentActivity
     // Shared by the list and the map.
     val homeVm = appViewModel(owner = activity) { HomeViewModel(it) }
 

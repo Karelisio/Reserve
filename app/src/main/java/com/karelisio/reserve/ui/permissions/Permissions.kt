@@ -127,7 +127,11 @@ fun LaunchPermissions(onLocationResult: (Boolean) -> Unit, onDone: () -> Unit) {
                 TextButton(onClick = {
                     scope.launch { settings.setAsked(background = true) }
                     explain = false
-                    backgroundLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        backgroundLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    } else {
+                        step = Step.INSTALL
+                    }
                 }) { Text("Continuer") }
             },
             dismissButton = {

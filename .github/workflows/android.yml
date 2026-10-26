@@ -25,10 +25,18 @@ jobs:
       - name: SDK Android 37
         run: sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
       - uses: gradle/actions/setup-gradle@v6
-      - name: Tests unitaires
+      - name: Tests unitaires (dont migration de la base)
         run: ./gradlew :app:testDebugUnitTest
+      - name: Lint Android
+        run: ./gradlew :app:lintDebug
       - name: Build debug
         run: ./gradlew :app:assembleDebug
+      - name: Rapport lint
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
 
   release:
     name: APK release signé

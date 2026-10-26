@@ -155,7 +155,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun loyaltyCards(): LoyaltyCardDao
 
     companion object {
-        fun create(context: Context): AppDatabase =
-            Room.databaseBuilder(context, AppDatabase::class.java, "reserve.db").build()
+        const val NAME = "reserve.db"
+
+        /** Schema changes must keep the users' data: add a migration, never a destructive fallback. */
+        fun create(context: Context, name: String = NAME): AppDatabase =
+            Room.databaseBuilder(context, AppDatabase::class.java, name).build()
     }
 }
