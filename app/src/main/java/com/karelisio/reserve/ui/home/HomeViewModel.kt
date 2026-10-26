@@ -173,10 +173,17 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         if (refreshJob?.isActive == true || place.value != null) return
         refreshJob = viewModelScope.launch {
             val cached = app.stations.lastResult.value ?: app.stations.loadCache()
+            val fresh = cached != null && System.currentTimeMillis() - cached.fetchedAt <= STALE_MS
+            var shown = cached?.center?.takeIf { fresh }
+            fun movedFrom(here: LatLon) = shown?.let { Geo.distanceKm(here, it) > MOVED_KM } ?: true
+            // 1. Instant: the position Android already knows, when recent.
+            app.location.recent(QUICK_FIX_MS)?.takeIf(::movedFrom)?.let { quick ->
+                load(quick)
+                shown = quick
+            }
+            // 2. A precise fix a few seconds later, only reloaded if it differs.
             val here = app.location.current(timeoutMs = 8_000)
-            val moved = here != null && cached != null && Geo.distanceKm(here, cached.center) > MOVED_KM
-            val stale = cached == null || System.currentTimeMillis() - cached.fetchedAt > STALE_MS
-            if (moved || stale) load(here)
+            if (shown == null || (here != null && movedFrom(here))) load(here)
         }
     }
 
@@ -326,5 +333,6 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
     companion object {
         private const val STALE_MS = 10 * 60 * 1000L
         private const val MOVED_KM = 1.0
+        private const val QUICK_FIX_MS = 15 * 60 * 1000L
     }
 }

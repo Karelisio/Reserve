@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.CancellationSignal
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 import com.karelisio.reserve.data.model.LatLon
@@ -48,11 +49,19 @@ class LocationProvider(private val context: Context) {
         return (fresh ?: lastKnown())?.let { LatLon(it.latitude, it.longitude) }
     }
 
+    /** Position Android already knows (no wait), if it is less than [maxAgeMs] old. */
+    fun recent(maxAgeMs: Long): LatLon? {
+        if (!hasPermission()) return null
+        val location = lastKnown() ?: return null
+        val ageMs = (SystemClock.elapsedRealtimeNanos() - location.elapsedRealtimeNanos) / 1_000_000
+        return if (ageMs in 0..maxAgeMs) LatLon(location.latitude, location.longitude) else null
+    }
+
     @SuppressLint("MissingPermission")
     fun lastKnown(): Location? = runCatching {
         manager?.getProviders(true).orEmpty()
             .mapNotNull { manager?.getLastKnownLocation(it) }
-            .maxByOrNull { it.time }
+            .maxByOrNull { it.elapsedRealtimeNanos }
     }.getOrNull()
 
     @SuppressLint("MissingPermission")
