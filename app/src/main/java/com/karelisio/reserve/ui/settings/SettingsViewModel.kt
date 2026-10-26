@@ -3,6 +3,7 @@ package com.karelisio.reserve.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.karelisio.reserve.AppContainer
+import com.karelisio.reserve.bluetooth.PairedDevice
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.prefs.Settings
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +21,15 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
     }
 
     fun setNavApp(navApp: NavApp) = viewModelScope.launch { app.settings.setNavApp(navApp) }
+
+    fun setCarAlert(enabled: Boolean, device: PairedDevice?) = viewModelScope.launch {
+        val current = app.settings.current()
+        app.settings.setCarAlert(
+            enabled = enabled,
+            address = device?.address ?: current.carDeviceAddress,
+            name = device?.name ?: current.carDeviceName,
+        )
+    }
 
     fun setAlerts(enabled: Boolean, threshold: Double?, dropCents: Double) = viewModelScope.launch {
         app.settings.setAlerts(enabled, threshold, dropCents)

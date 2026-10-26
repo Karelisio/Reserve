@@ -77,6 +77,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
         ) {
             VehicleSection(s, vm::setVehicle)
             AlertsSection(s, vm::setAlerts)
+            CarAlertSection(s, vm::setCarAlert)
             SettingsSection("Navigation") {
                 Text("Application pour « Y aller »", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))

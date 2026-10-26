@@ -5,9 +5,13 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
 
     <!-- Navigation apps used by "Y aller" (package visibility, Android 11+). -->
     <queries>
@@ -49,6 +53,15 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/reserve_widget_info" />
+        </receiver>
+
+        <!-- Car alert: the phone connects to the car's Bluetooth (protected system broadcast). -->
+        <receiver
+            android:name=".bluetooth.CarConnectionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+            </intent-filter>
         </receiver>
     </application>
 </manifest>
