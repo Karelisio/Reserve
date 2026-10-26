@@ -1,6 +1,7 @@
 package com.karelisio.reserve.data.local
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Insert
@@ -100,7 +101,35 @@ interface FillUpDao {
     @Query("SELECT * FROM fill_up ORDER BY date")
     suspend fun all(): List<FillUpEntity>
 
+    /** Fill-ups logged before vehicles existed belong to the first vehicle. */
+    @Query("UPDATE fill_up SET vehicleId = :vehicleId WHERE vehicleId IS NULL")
+    suspend fun assignOrphans(vehicleId: Long)
+
+    @Query("UPDATE fill_up SET vehicleId = :to WHERE vehicleId = :from")
+    suspend fun moveVehicle(from: Long, to: Long)
+
     @Query("DELETE FROM fill_up WHERE id = :id")
+    suspend fun delete(id: Long)
+}
+
+@Dao
+interface VehicleDao {
+    @Query("SELECT * FROM vehicle ORDER BY id")
+    fun observeAll(): Flow<List<VehicleEntity>>
+
+    @Query("SELECT * FROM vehicle ORDER BY id")
+    suspend fun all(): List<VehicleEntity>
+
+    @Query("SELECT * FROM vehicle WHERE id = :id")
+    suspend fun byId(id: Long): VehicleEntity?
+
+    @Insert
+    suspend fun insert(vehicle: VehicleEntity): Long
+
+    @Upsert
+    suspend fun upsert(vehicle: VehicleEntity)
+
+    @Query("DELETE FROM vehicle WHERE id = :id")
     suspend fun delete(id: Long)
 }
 
@@ -141,9 +170,11 @@ class Converters {
         ZoneAverageEntity::class,
         FillUpEntity::class,
         LoyaltyCardEntity::class,
+        VehicleEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -153,6 +184,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun zoneAverages(): ZoneAverageDao
     abstract fun fillUps(): FillUpDao
     abstract fun loyaltyCards(): LoyaltyCardDao
+    abstract fun vehicles(): VehicleDao
 
     companion object {
         const val NAME = "reserve.db"

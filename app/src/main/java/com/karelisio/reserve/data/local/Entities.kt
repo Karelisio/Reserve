@@ -69,6 +69,23 @@ data class FillUpEntity(
     val fullTank: Boolean,
     /** Average price around the station when filling up, to measure the savings. */
     val localAveragePrice: Double?,
+    /** Vehicle of the fill-up (added in schema 2; null only for logs older than vehicles). */
+    val vehicleId: Long? = null,
+)
+
+/** A car profile: its fuel, consumption and tank, used for the real cost and the range. */
+@Serializable
+@Entity(tableName = "vehicle")
+data class VehicleEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val fuel: Fuel,
+    /** Liters per 100 km. */
+    val consumption: Double,
+    /** Liters usually put in the tank. */
+    val fillLiters: Double,
+    /** Tank capacity in liters, for the estimated range. */
+    val tankCapacity: Double,
 )
 
 enum class DiscountUnit { CENTS_PER_LITER, PERCENT }

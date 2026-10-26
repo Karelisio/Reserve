@@ -34,9 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karelisio.reserve.BuildConfig
 import com.karelisio.reserve.container
+import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.update.AppUpdate
 import com.karelisio.reserve.update.UpdateState
-import com.karelisio.reserve.ui.components.rememberHaptics
 import java.util.Locale
 
 /** Shows the in-app update flow: available → download → install. */

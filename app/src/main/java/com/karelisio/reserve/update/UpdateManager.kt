@@ -1,6 +1,5 @@
 package com.karelisio.reserve.update
 
-import com.karelisio.reserve.diagnostics.Diagnostics
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -13,11 +12,12 @@ import com.karelisio.reserve.BuildConfig
 import com.karelisio.reserve.container
 import com.karelisio.reserve.data.prefs.SettingsRepository
 import com.karelisio.reserve.data.remote.arr
+import com.karelisio.reserve.data.remote.await
 import com.karelisio.reserve.data.remote.getJson
 import com.karelisio.reserve.data.remote.lng
 import com.karelisio.reserve.data.remote.obj
 import com.karelisio.reserve.data.remote.str
-import com.karelisio.reserve.data.remote.await
+import com.karelisio.reserve.diagnostics.Diagnostics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

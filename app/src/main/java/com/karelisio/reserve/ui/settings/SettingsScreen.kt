@@ -1,8 +1,5 @@
 package com.karelisio.reserve.ui.settings
 
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material.icons.rounded.BugReport
-import com.karelisio.reserve.diagnostics.ReportDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -28,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFlexibleTopAppBar
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -49,6 +48,7 @@ import com.karelisio.reserve.BuildConfig
 import com.karelisio.reserve.container
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.prefs.Settings
+import com.karelisio.reserve.diagnostics.ReportDialog
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.SOURCE_MENTION
@@ -57,6 +57,7 @@ import com.karelisio.reserve.ui.components.SOURCE_MENTION
 fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val cards by vm.cards.collectAsStateWithLifecycle()
+    val vehicles by vm.vehicles.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -85,7 +86,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             AppearanceSection(s, vm::setAppearance)
-            VehicleSection(s, vm::setVehicle)
+            VehiclesSection(vehicles, s.activeVehicleId, vm::activateVehicle, vm::saveVehicle, vm::deleteVehicle)
             LoyaltySection(cards, vm::addCard, vm::deleteCard)
             AlertsSection(s, vm::setAlerts, vm::setWeeklyRecap)
             CarAlertSection(s, vm::setCarAlert)
@@ -151,34 +152,6 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(12.dp))
             content()
-        }
-    }
-}
-
-@Composable
-private fun VehicleSection(settings: Settings, onChange: (Double, Double) -> Unit) {
-    SettingsSection("Ma voiture") {
-        Text(
-            "Utilisé pour le « vrai coût » : le carburant brûlé pour rejoindre une station est ajouté au prix du plein.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            DecimalField(
-                label = "Consommation",
-                suffix = "L/100 km",
-                value = settings.consumption,
-                onValue = { onChange(it, settings.fillLiters) },
-                modifier = Modifier.weight(1f),
-            )
-            DecimalField(
-                label = "Plein habituel",
-                suffix = "L",
-                value = settings.fillLiters,
-                onValue = { onChange(settings.consumption, it) },
-                modifier = Modifier.weight(1f),
-            )
         }
     }
 }

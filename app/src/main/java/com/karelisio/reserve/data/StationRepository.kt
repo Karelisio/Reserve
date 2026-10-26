@@ -1,6 +1,5 @@
 package com.karelisio.reserve.data
 
-import com.karelisio.reserve.diagnostics.Diagnostics
 import android.content.Context
 import com.karelisio.reserve.data.local.AppDatabase
 import com.karelisio.reserve.data.local.FavoriteEntity
@@ -17,6 +16,7 @@ import com.karelisio.reserve.data.remote.FuelApi
 import com.karelisio.reserve.data.remote.Http
 import com.karelisio.reserve.data.remote.OsmFuelStation
 import com.karelisio.reserve.data.remote.OverpassApi
+import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.domain.Geo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

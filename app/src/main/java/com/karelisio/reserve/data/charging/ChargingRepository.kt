@@ -1,12 +1,12 @@
 package com.karelisio.reserve.data.charging
 
-import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.remote.arr
 import com.karelisio.reserve.data.remote.dbl
 import com.karelisio.reserve.data.remote.getJson
 import com.karelisio.reserve.data.remote.obj
 import com.karelisio.reserve.data.remote.str
+import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.domain.Geo
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive

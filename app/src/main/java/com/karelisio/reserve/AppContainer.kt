@@ -3,6 +3,7 @@ package com.karelisio.reserve
 import android.content.Context
 import com.karelisio.reserve.data.BackupManager
 import com.karelisio.reserve.data.StationRepository
+import com.karelisio.reserve.data.VehicleRepository
 import com.karelisio.reserve.data.local.AppDatabase
 import com.karelisio.reserve.data.prefs.SettingsRepository
 import com.karelisio.reserve.data.remote.FuelApi
@@ -26,6 +27,7 @@ class AppContainer(val context: Context) {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val updates = UpdateManager(context, http, settings, appScope)
     val backup = BackupManager(this)
+    val vehicles = VehicleRepository(db, settings)
 }
 
 val Context.container: AppContainer

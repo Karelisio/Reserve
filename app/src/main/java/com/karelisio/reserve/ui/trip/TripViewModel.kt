@@ -1,9 +1,9 @@
 package com.karelisio.reserve.ui.trip
 
-import com.karelisio.reserve.diagnostics.Diagnostics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.karelisio.reserve.AppContainer
+import com.karelisio.reserve.data.local.LoyaltyCardEntity
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.SortMode
@@ -13,11 +13,11 @@ import com.karelisio.reserve.data.remote.AddressApi
 import com.karelisio.reserve.data.remote.AddressSuggestion
 import com.karelisio.reserve.data.remote.OsrmApi
 import com.karelisio.reserve.data.remote.Route
+import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.domain.Pricing
 import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.domain.Vehicle
-import com.karelisio.reserve.data.local.LoyaltyCardEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job

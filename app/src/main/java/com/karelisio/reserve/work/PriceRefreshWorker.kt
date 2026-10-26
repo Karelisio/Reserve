@@ -1,6 +1,5 @@
 package com.karelisio.reserve.work
 
-import com.karelisio.reserve.diagnostics.Diagnostics
 import android.content.Context
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -14,6 +13,7 @@ import com.karelisio.reserve.data.local.FavoriteEntity
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.Station
+import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.notifications.Notifier

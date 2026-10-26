@@ -1,16 +1,10 @@
 package com.karelisio.reserve.ui.home
 
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.FlowPreview
-import com.karelisio.reserve.domain.Brand
-import com.karelisio.reserve.data.remote.AddressSuggestion
-import com.karelisio.reserve.data.remote.AddressApi
-import com.karelisio.reserve.diagnostics.Diagnostics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.karelisio.reserve.AppContainer
 import com.karelisio.reserve.data.local.LoyaltyCardEntity
+import com.karelisio.reserve.data.local.VehicleEntity
 import com.karelisio.reserve.data.model.Filters
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.LatLon
@@ -18,6 +12,10 @@ import com.karelisio.reserve.data.model.SearchResult
 import com.karelisio.reserve.data.model.SortMode
 import com.karelisio.reserve.data.model.Station
 import com.karelisio.reserve.data.prefs.Settings
+import com.karelisio.reserve.data.remote.AddressApi
+import com.karelisio.reserve.data.remote.AddressSuggestion
+import com.karelisio.reserve.diagnostics.Diagnostics
+import com.karelisio.reserve.domain.Brand
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.domain.Pricing
@@ -28,11 +26,14 @@ import com.karelisio.reserve.domain.Vehicle
 import com.karelisio.reserve.work.Surfaces
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -211,6 +212,14 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
                 )
             }
         }
+    }
+
+    val vehicles: StateFlow<List<VehicleEntity>> = app.vehicles.vehicles
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun activateVehicle(vehicle: VehicleEntity) = viewModelScope.launch {
+        app.vehicles.activate(vehicle)
+        Surfaces.update(app.context)
     }
 
     fun setQuery(text: String) {

@@ -7,12 +7,13 @@ import com.karelisio.reserve.MainActivity
 import com.karelisio.reserve.bluetooth.PairedDevice
 import com.karelisio.reserve.data.local.DiscountUnit
 import com.karelisio.reserve.data.local.LoyaltyCardEntity
-import com.karelisio.reserve.domain.Brand
-import com.karelisio.reserve.work.Surfaces
-import com.karelisio.reserve.work.WeeklyRecapWorker
+import com.karelisio.reserve.data.local.VehicleEntity
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.model.ThemeMode
 import com.karelisio.reserve.data.prefs.Settings
+import com.karelisio.reserve.domain.Brand
+import com.karelisio.reserve.work.Surfaces
+import com.karelisio.reserve.work.WeeklyRecapWorker
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -36,9 +37,20 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         Surfaces.update(app.context)
     }
 
-    fun setVehicle(consumption: Double, liters: Double) = viewModelScope.launch {
-        app.settings.setVehicle(consumption, liters)
+    val vehicles: StateFlow<List<VehicleEntity>> = app.vehicles.vehicles
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun activateVehicle(vehicle: VehicleEntity) = viewModelScope.launch {
+        app.vehicles.activate(vehicle)
+        Surfaces.update(app.context)
     }
+
+    fun saveVehicle(vehicle: VehicleEntity) = viewModelScope.launch {
+        app.vehicles.save(vehicle)
+        Surfaces.update(app.context)
+    }
+
+    fun deleteVehicle(vehicle: VehicleEntity) = viewModelScope.launch { app.vehicles.delete(vehicle) }
 
     fun setAppearance(mode: ThemeMode, dynamicColor: Boolean, pureBlack: Boolean) = viewModelScope.launch {
         app.settings.setAppearance(mode, dynamicColor, pureBlack)

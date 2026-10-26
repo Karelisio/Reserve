@@ -1,6 +1,5 @@
 package com.karelisio.reserve.ui
 
-import com.karelisio.reserve.diagnostics.PendingCrashDialog
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.fadeIn
@@ -44,15 +43,16 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.karelisio.reserve.Shortcuts
 import com.karelisio.reserve.container
+import com.karelisio.reserve.diagnostics.PendingCrashDialog
 import com.karelisio.reserve.ui.charging.ChargingScreen
 import com.karelisio.reserve.ui.charging.ChargingViewModel
 import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.ui.favorites.FavoritesScreen
+import com.karelisio.reserve.ui.favorites.FavoritesViewModel
 import com.karelisio.reserve.ui.fuellog.FillUpDraft
 import com.karelisio.reserve.ui.fuellog.FillUpSheet
 import com.karelisio.reserve.ui.fuellog.FuelLogScreen
 import com.karelisio.reserve.ui.fuellog.FuelLogViewModel
-import com.karelisio.reserve.ui.favorites.FavoritesViewModel
 import com.karelisio.reserve.ui.home.HomeScreen
 import com.karelisio.reserve.ui.home.HomeViewModel
 import com.karelisio.reserve.ui.map.MapScreen

@@ -60,6 +60,7 @@ import com.karelisio.reserve.data.local.FillUpEntity
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.FuelLogStats
 import com.karelisio.reserve.domain.MonthSpend
+import com.karelisio.reserve.ui.components.ConnectedChoice
 import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.ui.home.EmptyState
 import kotlinx.coroutines.launch
@@ -120,6 +121,17 @@ fun FuelLogScreen(vm: FuelLogViewModel, startAdding: Boolean = false, onStartAdd
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            if (state.vehicles.size > 1) {
+                item(key = "vehicles") {
+                    ConnectedChoice(
+                        options = state.vehicles.map { it.id },
+                        selected = state.vehicleId ?: state.vehicles.first().id,
+                        label = { id -> state.vehicles.first { it.id == id }.name },
+                        onSelect = vm::showVehicle,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
             val stats = state.stats
             if (stats != null && state.fillUps.isNotEmpty()) {
                 item(key = "stats") { StatsRow(stats) }

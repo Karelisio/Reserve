@@ -37,6 +37,16 @@ class MigrationTest {
         assertEquals(listOf(1000001L), favorites.map { it.stationId })
         assertEquals(42.0, fillUps.single().liters, 0.0)
         assertEquals(1, db.loyaltyCards().all().size)
+        // Schema 2: vehicles, and fill-ups attached to the first one.
+        assertEquals(null, fillUps.single().vehicleId)
+        val vehicleId = db.vehicles().insert(
+            com.karelisio.reserve.data.local.VehicleEntity(
+                name = "Ma voiture", fuel = com.karelisio.reserve.data.model.Fuel.GAZOLE,
+                consumption = 6.0, fillLiters = 40.0, tankCapacity = 50.0,
+            ),
+        )
+        db.fillUps().assignOrphans(vehicleId)
+        assertEquals(vehicleId, db.fillUps().all().single().vehicleId)
         db.close()
     }
 

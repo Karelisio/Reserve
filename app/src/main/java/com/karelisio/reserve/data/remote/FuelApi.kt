@@ -1,9 +1,9 @@
 package com.karelisio.reserve.data.remote
 
-import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.Station
+import com.karelisio.reserve.diagnostics.Diagnostics
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope

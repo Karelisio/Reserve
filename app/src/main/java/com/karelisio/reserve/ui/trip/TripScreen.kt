@@ -1,11 +1,5 @@
 package com.karelisio.reserve.ui.trip
 
-import com.karelisio.reserve.ui.station.Navigator
-import com.karelisio.reserve.data.model.NavApp
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.TextButton
-import androidx.compose.material.icons.automirrored.rounded.AltRoute
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -23,12 +17,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.AltRoute
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Place
@@ -49,6 +45,7 @@ import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -57,11 +54,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.ui.components.FuelSelector
 import com.karelisio.reserve.ui.components.InfoBanner
@@ -71,6 +70,7 @@ import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.ui.home.EmptyState
 import com.karelisio.reserve.ui.map.StationMap
 import com.karelisio.reserve.ui.map.rememberMarkers
+import com.karelisio.reserve.ui.station.Navigator
 import kotlin.math.roundToInt
 
 @Composable

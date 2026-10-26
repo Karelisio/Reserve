@@ -1,20 +1,10 @@
 package com.karelisio.reserve.ui.home
 
-import com.karelisio.reserve.data.remote.AddressSuggestion
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.ListItem
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.material.icons.rounded.Place
-import androidx.compose.material.icons.rounded.SearchOff
-import androidx.compose.material.icons.rounded.Search
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -28,23 +18,33 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.EuroSymbol
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.rounded.NearMe
+import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,6 +53,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +61,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -67,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.model.SortMode
+import com.karelisio.reserve.data.remote.AddressSuggestion
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.ui.components.ActiveFilters
@@ -89,6 +94,8 @@ fun HomeScreen(
     onOpenCharging: () -> Unit = {},
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val vehicles by vm.vehicles.collectAsStateWithLifecycle()
+    var vehicleMenu by remember { mutableStateOf(false) }
     val haptics = rememberHaptics()
     var showFilters by rememberSaveable { mutableStateOf(false) }
     var navigateTo by remember { mutableStateOf<RankedStation?>(null) }
@@ -110,6 +117,24 @@ fun HomeScreen(
                     Text("${state.settings.fuel.label} · ${state.settings.radiusKm} km" + (state.place?.let { " · $it" } ?: updated))
                 },
                 actions = {
+                    if (vehicles.size > 1) {
+                        Box {
+                            IconButton(onClick = { haptics.tick(); vehicleMenu = true }) {
+                                Icon(Icons.Rounded.DirectionsCar, contentDescription = "Changer de véhicule")
+                            }
+                            DropdownMenu(expanded = vehicleMenu, onDismissRequest = { vehicleMenu = false }) {
+                                vehicles.forEach { vehicle ->
+                                    DropdownMenuItem(
+                                        text = { Text(vehicle.name) },
+                                        leadingIcon = {
+                                            if (vehicle.id == state.settings.activeVehicleId) Icon(Icons.Rounded.Check, null)
+                                        },
+                                        onClick = { haptics.confirm(); vm.activateVehicle(vehicle); vehicleMenu = false },
+                                    )
+                                }
+                            }
+                        }
+                    }
                     IconButton(onClick = {
                         haptics.tick()
                         searching = !searching

@@ -6,6 +6,7 @@ import com.karelisio.reserve.data.local.FavoriteEntity
 import com.karelisio.reserve.data.local.FillUpEntity
 import com.karelisio.reserve.data.local.LoyaltyCardEntity
 import com.karelisio.reserve.data.local.PriceHistoryEntity
+import com.karelisio.reserve.data.local.VehicleEntity
 import com.karelisio.reserve.data.local.ZoneAverageEntity
 import com.karelisio.reserve.data.model.Filters
 import com.karelisio.reserve.data.model.Fuel
@@ -52,6 +53,7 @@ data class BackupFile(
     val loyaltyCards: List<LoyaltyCardEntity>,
     val priceHistory: List<PriceHistoryEntity>,
     val zoneAverages: List<ZoneAverageEntity>,
+    val vehicles: List<VehicleEntity> = emptyList(),
 )
 
 data class ImportSummary(val favorites: Int, val fillUps: Int, val cards: Int)
@@ -72,6 +74,7 @@ class BackupManager(private val app: AppContainer) {
             loyaltyCards = db.loyaltyCards().all(),
             priceHistory = db.priceHistory().all(),
             zoneAverages = db.zoneAverages().all(),
+            vehicles = db.vehicles().all(),
         )
         withContext(Dispatchers.IO) {
             out.bufferedWriter().use { it.write(Http.json.encodeToString(BackupFile.serializer(), file)) }
@@ -100,6 +103,9 @@ class BackupManager(private val app: AppContainer) {
             }
             db.priceHistory().insert(file.priceHistory.map { it.copy(id = 0) })
             db.zoneAverages().upsert(file.zoneAverages)
+            // Vehicles keep their ids so that imported fill-ups stay attached to them.
+            val known = db.vehicles().all().map { it.id }.toSet()
+            file.vehicles.filter { it.id !in known }.forEach { db.vehicles().upsert(it) }
         }
         with(file.settings) {
             app.settings.setFuel(fuel)

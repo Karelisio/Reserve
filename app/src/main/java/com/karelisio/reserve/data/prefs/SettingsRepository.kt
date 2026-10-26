@@ -47,6 +47,8 @@ data class Settings(
     val pureBlack: Boolean = false,
     /** Sunday notification with the week's summary. */
     val weeklyRecap: Boolean = true,
+    /** Vehicle whose fuel, consumption and fill are used (see VehicleRepository). */
+    val activeVehicleId: Long? = null,
 )
 
 /** Fill-up suggested after "Y aller", until the user logs it or dismisses it. */
@@ -93,6 +95,7 @@ class SettingsRepository(context: Context) {
         val dynamicColor = booleanPreferencesKey("dynamic_color")
         val pureBlack = booleanPreferencesKey("pure_black")
         val weeklyRecap = booleanPreferencesKey("weekly_recap")
+        val activeVehicle = longPreferencesKey("active_vehicle")
     }
 
     val settings: Flow<Settings> = store.data.map { p ->
@@ -121,6 +124,7 @@ class SettingsRepository(context: Context) {
             dynamicColor = p[Keys.dynamicColor] ?: true,
             pureBlack = p[Keys.pureBlack] ?: false,
             weeklyRecap = p[Keys.weeklyRecap] ?: true,
+            activeVehicleId = p[Keys.activeVehicle],
         )
     }
 
@@ -172,6 +176,14 @@ class SettingsRepository(context: Context) {
     suspend fun setNationalAverages(values: Map<Fuel, Double>, at: Long) = store.edit {
         it[Keys.nationalAverages] = values.entries.joinToString(";") { (fuel, value) -> "${fuel.name}=$value" }
         it[Keys.nationalAt] = at
+    }
+
+    /** Makes [id] the active vehicle and applies its fuel and consumption to the app. */
+    suspend fun setActiveVehicle(id: Long, fuel: Fuel, consumption: Double, fillLiters: Double) = store.edit {
+        it[Keys.activeVehicle] = id
+        it[Keys.fuel] = fuel.name
+        it[Keys.consumption] = consumption.coerceIn(2.0, 30.0)
+        it[Keys.fillLiters] = fillLiters.coerceIn(5.0, 150.0)
     }
 
     suspend fun setWeeklyRecap(enabled: Boolean) = store.edit { it[Keys.weeklyRecap] = enabled }
