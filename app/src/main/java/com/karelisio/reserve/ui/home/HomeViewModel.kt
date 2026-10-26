@@ -44,6 +44,7 @@ data class HomeUiState(
     val needsLocationPermission: Boolean = false,
     val favorites: Set<Long> = emptySet(),
     val trend: Trend? = null,
+    val national: Map<Fuel, Double> = emptyMap(),
 ) {
     val origin: LatLon? get() = result?.center
     val best: RankedStation? get() = Pricing.best(stations)
@@ -58,6 +59,7 @@ private data class Transient(val loading: Boolean = false, val error: String? = 
 class HomeViewModel(private val app: AppContainer) : ViewModel() {
 
     private val transient = MutableStateFlow(Transient())
+    private val national = MutableStateFlow<Map<Fuel, Double>>(emptyMap())
     private var refreshJob: Job? = null
 
     private val cards = app.db.loyaltyCards().observeAll()
@@ -93,8 +95,8 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         app.stations.lastResult,
         app.db.favorites().observeIds(),
         ranked,
-        combine(transient, trend) { t, tr -> t to tr },
-    ) { settings, result, favorites, stations, (t, trend) ->
+        combine(transient, trend, national) { t, tr, n -> Triple(t, tr, n) },
+    ) { settings, result, favorites, stations, (t, trend, national) ->
         HomeUiState(
             settings = settings,
             result = result,
@@ -104,10 +106,12 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
             needsLocationPermission = t.needsPermission,
             favorites = favorites.toSet(),
             trend = trend,
+            national = national,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(loading = true))
 
     init {
+        viewModelScope.launch { national.value = app.stations.nationalAverages() }
         viewModelScope.launch {
             val cached = app.stations.loadCache()
             if (cached == null || System.currentTimeMillis() - cached.fetchedAt > STALE_MS) refresh()

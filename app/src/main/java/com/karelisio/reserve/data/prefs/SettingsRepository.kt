@@ -83,6 +83,8 @@ class SettingsRepository(context: Context) {
         val lastUpdateCheck = longPreferencesKey("last_update_check")
         val askedBackground = booleanPreferencesKey("asked_background_location")
         val askedInstall = booleanPreferencesKey("asked_install_packages")
+        val nationalAverages = stringPreferencesKey("national_averages")
+        val nationalAt = longPreferencesKey("national_averages_at")
         val themeMode = stringPreferencesKey("theme_mode")
         val dynamicColor = booleanPreferencesKey("dynamic_color")
         val pureBlack = booleanPreferencesKey("pure_black")
@@ -143,6 +145,22 @@ class SettingsRepository(context: Context) {
     suspend fun setVehicle(consumption: Double, fillLiters: Double) = store.edit {
         it[Keys.consumption] = consumption.coerceIn(2.0, 30.0)
         it[Keys.fillLiters] = fillLiters.coerceIn(5.0, 150.0)
+    }
+
+    /** Cached national averages, as "GAZOLE=1.789;E10=1.85" with the time they were fetched. */
+    suspend fun nationalAverages(): Pair<Map<Fuel, Double>, Long> {
+        val p = store.data.first()
+        val map = p[Keys.nationalAverages].orEmpty().split(';').mapNotNull { entry ->
+            val (key, value) = entry.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
+            val fuel = runCatching { Fuel.valueOf(key) }.getOrNull() ?: return@mapNotNull null
+            value.toDoubleOrNull()?.let { fuel to it }
+        }.toMap()
+        return map to (p[Keys.nationalAt] ?: 0L)
+    }
+
+    suspend fun setNationalAverages(values: Map<Fuel, Double>, at: Long) = store.edit {
+        it[Keys.nationalAverages] = values.entries.joinToString(";") { (fuel, value) -> "${fuel.name}=$value" }
+        it[Keys.nationalAt] = at
     }
 
     suspend fun setAppearance(mode: ThemeMode, dynamicColor: Boolean, pureBlack: Boolean) = store.edit {

@@ -42,7 +42,7 @@ import com.karelisio.reserve.ui.components.Sparkline
 
 /** "Maintenant ou attendre ?" */
 @Composable
-fun TrendCard(trend: Trend, fuel: Fuel, modifier: Modifier = Modifier) {
+fun TrendCard(trend: Trend, fuel: Fuel, modifier: Modifier = Modifier, national: Double? = null) {
     val colors = MaterialTheme.colorScheme
     val (container, onContainer) = when (trend.direction) {
         TrendDirection.DOWN -> colors.tertiaryContainer to colors.onTertiaryContainer
@@ -118,7 +118,8 @@ fun TrendCard(trend: Trend, fuel: Fuel, modifier: Modifier = Modifier) {
             }
             if (trend.today != null && trend.weekAverage != null) {
                 Text(
-                    "Moyenne de la zone : ${Format.price(trend.today)} aujourd'hui · ${Format.price(trend.weekAverage)} sur 7 jours",
+                    "Moyenne de la zone : ${Format.price(trend.today)} aujourd'hui · ${Format.price(trend.weekAverage)} sur 7 jours" +
+                        national?.let { "\nMoyenne France : ${Format.price(it)} (zone ${signedCents(trend.today - it)})" }.orEmpty(),
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(top = 4.dp),
                 )
@@ -126,3 +127,6 @@ fun TrendCard(trend: Trend, fuel: Fuel, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** "+2 c" / "−3 c" */
+fun signedCents(diff: Double): String = (if (diff >= 0) "+" else "−") + Format.cents(kotlin.math.abs(diff))

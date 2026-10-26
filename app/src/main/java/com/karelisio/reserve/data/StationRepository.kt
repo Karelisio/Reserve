@@ -106,6 +106,16 @@ class StationRepository(
 
     suspend fun removeFavorite(id: Long) = db.favorites().delete(id)
 
+    /** National average price per fuel, refreshed twice a day at most. */
+    suspend fun nationalAverages(): Map<Fuel, Double> {
+        val (cached, at) = settings.nationalAverages()
+        if (cached.isNotEmpty() && System.currentTimeMillis() - at < NATIONAL_TTL) return cached
+        return runCatching { fuelApi.nationalAverages() }.getOrNull()
+            ?.takeIf { it.isNotEmpty() }
+            ?.also { settings.setNationalAverages(it, System.currentTimeMillis()) }
+            ?: cached
+    }
+
     /** After "Y aller": offer to log the fill-up when the user is back in the app. */
     suspend fun rememberTrip(station: Station, fuel: Fuel, price: Double?) {
         settings.setPendingFillUp(
@@ -192,6 +202,7 @@ class StationRepository(
     companion object {
         private const val MATCH_DISTANCE_M = 220.0
         private const val MATCH_TTL = 30L * 24 * 3600 * 1000
+        private const val NATIONAL_TTL = 12L * 3600 * 1000
         private const val NO_MATCH_TTL = 7L * 24 * 3600 * 1000
     }
 }

@@ -189,7 +189,7 @@ fun HomeScreen(
                 }
                 state.trend?.let { trend ->
                     item(key = "trend") {
-                        TrendCard(trend, state.settings.fuel, Modifier.padding(horizontal = 16.dp).animateItem())
+                        TrendCard(trend, state.settings.fuel, Modifier.padding(horizontal = 16.dp).animateItem(), national = state.national[state.settings.fuel])
                     }
                 }
                 if (state.needsLocationPermission) {

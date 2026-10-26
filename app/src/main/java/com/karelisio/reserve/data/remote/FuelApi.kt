@@ -1,5 +1,6 @@
 package com.karelisio.reserve.data.remote
 
+import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.Station
 import kotlinx.coroutines.async
@@ -36,6 +37,17 @@ class FuelApi(private val client: OkHttpClient) {
         points.chunked(20).map { chunk ->
             async { query(chunk.joinToString(" OR ") { withinDistance(it, radiusKm) }) }
         }.awaitAll().flatten().distinctBy { it.id }
+    }
+
+    /** Average price of each fuel over all French stations (aggregation done by the API). */
+    suspend fun nationalAverages(): Map<Fuel, Double> {
+        val url = BASE_URL.toHttpUrl().newBuilder()
+            .addQueryParameter("select", Fuel.entries.joinToString(",") { "avg(${it.apiKey}_prix) as ${it.apiKey}" })
+            .addQueryParameter("limit", "1")
+            .build()
+        val row = client.getJson(Request.Builder().url(url).build()).obj()?.get("results").arr()?.firstOrNull().obj()
+            ?: return emptyMap()
+        return Fuel.entries.mapNotNull { fuel -> row.dbl(fuel.apiKey)?.takeIf { it in 0.3..5.0 }?.let { fuel to it } }.toMap()
     }
 
     private fun withinDistance(point: LatLon, radiusKm: Double) = String.format(

@@ -30,6 +30,7 @@ data class StationUiState(
     val ranked: RankedStation? = null,
     val history: List<PriceHistoryEntity> = emptyList(),
     val historyFuel: Fuel = Fuel.GAZOLE,
+    val national: Map<Fuel, Double> = emptyMap(),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -38,6 +39,7 @@ class StationViewModel(private val app: AppContainer, private val stationId: Lon
     private val station = MutableStateFlow<Station?>(null)
     private val loading = MutableStateFlow(true)
     private val historyFuel = MutableStateFlow<Fuel?>(null)
+    private val national = MutableStateFlow<Map<Fuel, Double>>(emptyMap())
 
     private val history = combine(app.settings.settings.map { it.fuel }.distinctUntilChanged(), historyFuel) { s, h -> h ?: s }
         .flatMapLatest { fuel ->
@@ -49,8 +51,8 @@ class StationViewModel(private val app: AppContainer, private val stationId: Lon
         loading,
         app.db.favorites().observeIds().map { stationId in it },
         app.settings.settings,
-        combine(history, app.db.loyaltyCards().observeAll()) { h, c -> h to c },
-    ) { station, loading, favorite, settings, (history, cards) ->
+        combine(history, app.db.loyaltyCards().observeAll(), national) { h, c, n -> Triple(h, c, n) },
+    ) { station, loading, favorite, settings, (history, cards, national) ->
         val origin = app.stations.lastResult.value?.center ?: settings.lastLocation
         val ranked = if (station != null && origin != null) {
             Pricing.rank(
@@ -66,10 +68,12 @@ class StationViewModel(private val app: AppContainer, private val stationId: Lon
             ranked = ranked,
             history = history.second,
             historyFuel = history.first,
+            national = national,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StationUiState())
 
     init {
+        viewModelScope.launch { national.value = app.stations.nationalAverages() }
         viewModelScope.launch {
             station.value = app.stations.cachedStation(stationId)
             loading.value = station.value == null

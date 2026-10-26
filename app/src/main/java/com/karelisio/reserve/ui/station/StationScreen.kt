@@ -253,6 +253,16 @@ private fun SummaryCard(ranked: com.karelisio.reserve.domain.RankedStation, stat
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                 )
+                state.national[ranked.price.fuel]?.let { avg ->
+                    val diff = ranked.effectivePrice - avg
+                    Text(
+                        if (diff <= 0) "${Format.cents(-diff)} sous la moyenne nationale (${Format.price(avg)})"
+                        else "${Format.cents(diff)} au-dessus de la moyenne nationale (${Format.price(avg)})",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
                 if (ranked.discount > 0) {
                     Text(
                         "Remise fidélité −${Format.cents(ranked.discount)}/L incluse",
