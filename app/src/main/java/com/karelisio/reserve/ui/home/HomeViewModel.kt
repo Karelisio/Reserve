@@ -15,15 +15,23 @@ import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.domain.Pricing
 import com.karelisio.reserve.domain.RankedStation
+import com.karelisio.reserve.domain.Trend
+import com.karelisio.reserve.domain.TrendAnalyzer
 import com.karelisio.reserve.domain.Vehicle
 import com.karelisio.reserve.work.Surfaces
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 data class HomeUiState(
     val settings: Settings = Settings(),
@@ -33,6 +41,7 @@ data class HomeUiState(
     val error: String? = null,
     val needsLocationPermission: Boolean = false,
     val favorites: Set<Long> = emptySet(),
+    val trend: Trend? = null,
 ) {
     val origin: LatLon? get() = result?.center
     val best: RankedStation? get() = Pricing.best(stations)
@@ -43,6 +52,7 @@ data class HomeUiState(
 
 private data class Transient(val loading: Boolean = false, val error: String? = null, val needsPermission: Boolean = false)
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(private val app: AppContainer) : ViewModel() {
 
     private val transient = MutableStateFlow(Transient())
@@ -50,13 +60,25 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
 
     private val cards = app.db.loyaltyCards().observeAll()
 
+    /** Local average price of the selected fuel over the last days, in the user's zone. */
+    private val trend = combine(app.stations.lastResult, app.settings.settings.map { it.fuel }.distinctUntilChanged()) { r, f ->
+        r?.center?.let(Geo::zoneKey) to f
+    }
+        .distinctUntilChanged()
+        .flatMapLatest { (zone, fuel) ->
+            if (zone == null) flowOf(null)
+            else app.db.zoneAverages()
+                .observe(zone, fuel, LocalDate.now().toEpochDay() - TrendAnalyzer.WINDOW_DAYS)
+                .map { TrendAnalyzer.analyze(it) }
+        }
+
     val state: StateFlow<HomeUiState> = combine(
         app.settings.settings,
         app.stations.lastResult,
         app.db.favorites().observeIds(),
         cards,
-        transient,
-    ) { settings, result, favorites, cards, t ->
+        combine(transient, trend) { t, tr -> t to tr },
+    ) { settings, result, favorites, cards, (t, trend) ->
         HomeUiState(
             settings = settings,
             result = result,
@@ -65,6 +87,7 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
             error = t.error,
             needsLocationPermission = t.needsPermission,
             favorites = favorites.toSet(),
+            trend = trend,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(loading = true))
 

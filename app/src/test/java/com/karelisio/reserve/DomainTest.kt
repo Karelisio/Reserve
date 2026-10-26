@@ -102,3 +102,24 @@ class FuelLogTest {
         assertEquals(2.0, stats.savings, 1e-9)
     }
 }
+
+class TrendTest {
+    private fun day(offset: Long, avg: Double) = com.karelisio.reserve.data.local.ZoneAverageEntity(
+        day = java.time.LocalDate.now().toEpochDay() - offset, zone = "z", fuel = Fuel.GAZOLE,
+        average = avg, minimum = avg, samples = 10,
+    )
+
+    @Test
+    fun detectsFallingPrices() {
+        val trend = com.karelisio.reserve.domain.TrendAnalyzer.analyze((6L downTo 0L).map { day(it, 1.80 - (6 - it) * 0.004) })
+        assertEquals(com.karelisio.reserve.domain.TrendDirection.DOWN, trend.direction)
+    }
+
+    @Test
+    fun stableAndNotEnoughData() {
+        val stable = com.karelisio.reserve.domain.TrendAnalyzer.analyze((4L downTo 0L).map { day(it, 1.80 + if (it % 2 == 0L) 0.001 else -0.001) })
+        assertEquals(com.karelisio.reserve.domain.TrendDirection.STABLE, stable.direction)
+        val few = com.karelisio.reserve.domain.TrendAnalyzer.analyze(listOf(day(0, 1.8)))
+        assertEquals(null, few.direction)
+    }
+}
