@@ -7,6 +7,7 @@ import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.domain.Pricing
 import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.domain.Vehicle
+import com.karelisio.reserve.tile.BestPriceTileService
 import com.karelisio.reserve.widget.ReserveWidget
 
 /** Snapshot shown outside the app: widget, quick settings tile, Android Auto. */
@@ -39,5 +40,6 @@ object Surfaces {
     /** Refreshes every surface that displays prices outside of the app. */
     suspend fun update(context: Context) {
         runCatching { ReserveWidget().updateAll(context) }
+        BestPriceTileService.requestUpdate(context)
     }
 }

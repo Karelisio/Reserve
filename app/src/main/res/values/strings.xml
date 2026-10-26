@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">Reserve</string>
     <string name="widget_description">Carburant le moins cher autour de vous : prix et distance</string>
+    <string name="tile_label">Meilleur prix</string>
 </resources>

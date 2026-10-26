@@ -149,11 +149,17 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         if (granted) refresh()
     }
 
-    fun setFuel(fuel: Fuel) = viewModelScope.launch { app.settings.setFuel(fuel) }
+    fun setFuel(fuel: Fuel) = viewModelScope.launch {
+        app.settings.setFuel(fuel)
+        Surfaces.update(app.context)
+    }
 
     fun setSort(sort: SortMode) = viewModelScope.launch { app.settings.setSort(sort) }
 
-    fun setFilters(filters: Filters) = viewModelScope.launch { app.settings.setFilters(filters) }
+    fun setFilters(filters: Filters) = viewModelScope.launch {
+        app.settings.setFilters(filters)
+        Surfaces.update(app.context)
+    }
 
     fun setRadius(km: Int) = viewModelScope.launch {
         app.settings.setRadius(km)
