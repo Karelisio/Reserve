@@ -75,6 +75,7 @@ fun HomeScreen(
     vm: HomeViewModel,
     onOpenStation: (Long) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenCharging: () -> Unit = {},
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
@@ -127,7 +128,7 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 item(key = "fuel") {
-                    FuelSelector(state.settings.fuel, vm::setFuel, Modifier.fillMaxWidth())
+                    FuelSelector(state.settings.fuel, vm::setFuel, Modifier.fillMaxWidth(), onCharging = onOpenCharging)
                 }
                 item(key = "controls") {
                     Row(

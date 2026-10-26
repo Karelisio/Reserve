@@ -18,7 +18,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.EvStation
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -102,7 +105,13 @@ fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highl
 }
 
 @Composable
-fun FuelSelector(selected: Fuel, onSelect: (Fuel) -> Unit, modifier: Modifier = Modifier) {
+fun FuelSelector(
+    selected: Fuel,
+    onSelect: (Fuel) -> Unit,
+    modifier: Modifier = Modifier,
+    /** Shows a last "Bornes" chip opening the electric charging stations. */
+    onCharging: (() -> Unit)? = null,
+) {
     val haptics = rememberHaptics()
     Row(
         modifier = modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
@@ -119,6 +128,14 @@ fun FuelSelector(selected: Fuel, onSelect: (Fuel) -> Unit, modifier: Modifier = 
                         Icon(Icons.Rounded.Check, null, Modifier.size(FilterChipDefaults.IconSize))
                     }
                 },
+                shape = MaterialTheme.shapes.small,
+            )
+        }
+        if (onCharging != null) {
+            AssistChip(
+                onClick = { haptics.tick(); onCharging() },
+                label = { Text("Bornes") },
+                leadingIcon = { Icon(Icons.Rounded.EvStation, null, Modifier.size(AssistChipDefaults.IconSize)) },
                 shape = MaterialTheme.shapes.small,
             )
         }

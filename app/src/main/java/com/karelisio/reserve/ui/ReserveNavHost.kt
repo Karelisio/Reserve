@@ -43,6 +43,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.karelisio.reserve.Shortcuts
 import com.karelisio.reserve.container
+import com.karelisio.reserve.ui.charging.ChargingScreen
+import com.karelisio.reserve.ui.charging.ChargingViewModel
 import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.ui.favorites.FavoritesScreen
 import com.karelisio.reserve.ui.fuellog.FillUpDraft
@@ -69,6 +71,7 @@ import kotlinx.serialization.Serializable
 @Serializable object TripRoute
 @Serializable object FuelLogRoute
 @Serializable object SettingsRoute
+@Serializable object ChargingRoute
 @Serializable data class StationRoute(val id: Long)
 
 private data class TopLevel(val route: Any, val label: String, val icon: ImageVector)
@@ -186,10 +189,15 @@ fun ReserveNavHost(
             popExitTransition = { fadeOut() + scaleOut(targetScale = 0.96f) },
         ) {
             composable<HomeRoute> {
-                HomeScreen(vm = homeVm, onOpenStation = openStation, onOpenSettings = { nav.navigate(SettingsRoute) })
+                HomeScreen(
+                    vm = homeVm,
+                    onOpenStation = openStation,
+                    onOpenSettings = { nav.navigate(SettingsRoute) },
+                    onOpenCharging = { nav.navigate(ChargingRoute) },
+                )
             }
             composable<MapRoute> {
-                MapScreen(vm = homeVm, onOpenStation = openStation)
+                MapScreen(vm = homeVm, onOpenStation = openStation, onOpenCharging = { nav.navigate(ChargingRoute) })
             }
             composable<TripRoute> {
                 val home by homeVm.state.collectAsStateWithLifecycle()
@@ -216,6 +224,12 @@ fun ReserveNavHost(
             ) { entry ->
                 val id = entry.toRoute<StationRoute>().id
                 StationScreen(vm = appViewModel(key = "station-$id") { StationViewModel(it, id) }, onBack = { nav.popBackStack() })
+            }
+            composable<ChargingRoute>(
+                enterTransition = { slideInHorizontally { it / 3 } + fadeIn() },
+                popExitTransition = { slideOutHorizontally { it / 3 } + fadeOut() },
+            ) {
+                ChargingScreen(vm = appViewModel { ChargingViewModel(it) }, onBack = { nav.popBackStack() })
             }
             composable<SettingsRoute>(
                 enterTransition = { slideInHorizontally { it / 3 } + fadeIn() },

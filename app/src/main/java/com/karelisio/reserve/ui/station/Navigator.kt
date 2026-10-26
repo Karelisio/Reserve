@@ -19,9 +19,12 @@ object Navigator {
         else -> true
     }
 
-    fun navigate(context: Context, station: Station, app: NavApp): Boolean {
-        val lat = String.format(Locale.ROOT, "%.6f", station.lat)
-        val lon = String.format(Locale.ROOT, "%.6f", station.lon)
+    fun navigate(context: Context, station: Station, app: NavApp): Boolean =
+        navigate(context, station.lat, station.lon, station.displayName, app)
+
+    fun navigate(context: Context, latitude: Double, longitude: Double, label: String, app: NavApp): Boolean {
+        val lat = String.format(Locale.ROOT, "%.6f", latitude)
+        val lon = String.format(Locale.ROOT, "%.6f", longitude)
         val intent = when (app) {
             NavApp.WAZE -> Intent(Intent.ACTION_VIEW, Uri.parse("https://waze.com/ul?ll=$lat,$lon&navigate=yes"))
                 .setPackage(WAZE.takeIf { isPackageInstalled(context, it) })
@@ -32,7 +35,7 @@ object Navigator {
             }
             NavApp.OTHER, NavApp.ASK -> Intent(
                 Intent.ACTION_VIEW,
-                Uri.parse("geo:$lat,$lon?q=$lat,$lon(${Uri.encode(station.displayName)})"),
+                Uri.parse("geo:$lat,$lon?q=$lat,$lon(${Uri.encode(label)})"),
             )
         }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return try {

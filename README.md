@@ -24,6 +24,11 @@ Package : `com.karelisio.reserve` · minSdk 26 · targetSdk 36 · compileSdk 37
 - Remises fidélité : cartes déclarées (Leclerc, TotalEnergies, Intermarché…) appliquées aux prix affichés.
 - Filtres : 24/24 avec automate CB, lavage, gonflage, boutique, exclure l'autoroute.
 - Tuile de réglages rapides : meilleur prix autour de vous.
+- Bornes de recharge électrique (puce « Bornes ») : fichier national IRVE de data.gouv.fr, repli OpenStreetMap ; filtres prise, puissance ≥ 50 kW, gratuité.
+- Meilleur jour de la semaine, comparaison avec la moyenne nationale, alerte de rupture sur les favoris.
+- Widget configurable (moins cher autour ou favori épinglé, carburant propre), raccourcis de l'icône.
+- Sauvegarde : export/import JSON, export CSV du carnet, sauvegarde Android automatique.
+- Apparence : Système / Clair / Sombre, couleurs dynamiques on/off, noir pur ; écran de démarrage animé.
 - Mise à jour intégrée depuis les Releases GitHub (vérification au lancement, téléchargement de l'APK adapté au téléphone, installation confirmée par Android).
 - Toutes les autorisations demandées au lancement (localisation, notifications, Bluetooth, puis localisation « Toujours » et installation des mises à jour, expliquées avant) ; état et raccourcis dans Réglages → Autorisations.
 - Android Auto (Car App Library, catégorie `androidx.car.app.category.FUEL`) : stations les moins chères sur la carte du véhicule, fiche et lancement de la navigation.
@@ -37,6 +42,8 @@ Package : `com.karelisio.reserve` · minSdk 26 · targetSdk 36 · compileSdk 37
 | Fond de carte | Tuiles OpenStreetMap | ODbL |
 | Adresses (trajet) | api-adresse.data.gouv.fr (repli data.geopf.fr) | Licence Ouverte 2.0 |
 | Itinéraire | OSRM (router.project-osrm.org) | Données ODbL |
+| Bornes de recharge | Fichier consolidé IRVE, data.gouv.fr (API tabulaire), repli OpenStreetMap | Licence Ouverte 2.0 / ODbL |
+| Moyenne nationale | Agrégat de l'API carburants | Licence Ouverte 2.0 |
 
 Mention affichée dans l'appli : « Source : DGCCRF, prix des carburants, data.economie.gouv.fr » (Licence Ouverte 2.0).
 

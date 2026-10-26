@@ -86,7 +86,7 @@ private fun fraction(price: Double, range: ClosedFloatingPointRange<Double>?): F
     else ((price - range.start) / (range.endInclusive - range.start)).toFloat()
 
 @Composable
-fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit) {
+fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit, onOpenCharging: () -> Unit = {}) {
     val state by vm.state.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
     var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -118,7 +118,7 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit) {
         )
 
         Column(Modifier.statusBarsPadding().padding(top = 8.dp)) {
-            FuelSelector(state.settings.fuel, vm::setFuel, Modifier.fillMaxWidth())
+            FuelSelector(state.settings.fuel, vm::setFuel, Modifier.fillMaxWidth(), onCharging = onOpenCharging)
             ActiveFilters(state.settings.filters, vm::setFilters, Modifier.fillMaxWidth().padding(top = 4.dp))
         }
 
