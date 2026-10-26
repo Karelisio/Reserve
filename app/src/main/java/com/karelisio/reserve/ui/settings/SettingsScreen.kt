@@ -48,6 +48,7 @@ import com.karelisio.reserve.ui.components.SOURCE_MENTION
 @Composable
 fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
     val settings by vm.settings.collectAsStateWithLifecycle()
+    val cards by vm.cards.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -76,6 +77,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             VehicleSection(s, vm::setVehicle)
+            LoyaltySection(cards, vm::addCard, vm::deleteCard)
             AlertsSection(s, vm::setAlerts)
             CarAlertSection(s, vm::setCarAlert)
             SettingsSection("Navigation") {
