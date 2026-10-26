@@ -9,8 +9,10 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.karelisio.reserve.container
+import com.karelisio.reserve.data.local.FavoriteEntity
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.LatLon
+import com.karelisio.reserve.data.model.Station
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.notifications.Notifier
@@ -48,9 +50,46 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
         val favorites = app.db.favorites().all()
         if (favorites.isEmpty()) return
         val stations = app.stations.stationsByIds(favorites.map { it.stationId }).associateBy { it.id }
+        val outNotified = app.settings.shortageNotified().toMutableSet()
+        try {
+            checkFavorites(favorites, stations, outNotified, fuel, threshold, dropCents)
+        } finally {
+            app.settings.setShortageNotified(outNotified)
+        }
+    }
+
+    private suspend fun checkFavorites(
+        favorites: List<FavoriteEntity>,
+        stations: Map<Long, Station>,
+        outNotified: MutableSet<String>,
+        fuel: Fuel,
+        threshold: Double?,
+        dropCents: Double,
+    ) {
+        val app = applicationContext.container
         for (favorite in favorites) {
             val station = stations[favorite.stationId] ?: continue
-            if (station.isOutOf(fuel)) continue
+            val shortageKey = "${station.id}:${fuel.name}"
+            if (station.isOutOf(fuel)) {
+                // Shortage: notify once, until the fuel is back.
+                if (outNotified.add(shortageKey)) {
+                    Notifier.notify(
+                        applicationContext, Notifier.CHANNEL_ALERTS, shortageKey.hashCode(),
+                        title = "Rupture chez ${station.displayName}",
+                        text = "${fuel.label} indisponible pour le moment. Touchez pour voir les autres carburants et stations.",
+                        stationId = station.id,
+                    )
+                }
+                continue
+            }
+            if (outNotified.remove(shortageKey)) {
+                Notifier.notify(
+                    applicationContext, Notifier.CHANNEL_ALERTS, shortageKey.hashCode(),
+                    title = "${fuel.label} de retour chez ${station.displayName}",
+                    text = station.priceOf(fuel)?.let { "Disponible à ${Format.price(it.price)}." } ?: "De nouveau disponible.",
+                    stationId = station.id,
+                )
+            }
             val price = station.priceOf(fuel)?.price ?: continue
             val lastAlert = favorite.lastAlertPrice
             val history = app.db.priceHistory().lastTwo(station.id, fuel)

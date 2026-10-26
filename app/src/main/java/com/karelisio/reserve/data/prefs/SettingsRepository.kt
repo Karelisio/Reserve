@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.karelisio.reserve.data.model.Filters
 import com.karelisio.reserve.data.model.Fuel
@@ -83,6 +84,7 @@ class SettingsRepository(context: Context) {
         val lastUpdateCheck = longPreferencesKey("last_update_check")
         val askedBackground = booleanPreferencesKey("asked_background_location")
         val askedInstall = booleanPreferencesKey("asked_install_packages")
+        val shortageNotified = stringSetPreferencesKey("shortage_notified")
         val nationalAverages = stringPreferencesKey("national_averages")
         val nationalAt = longPreferencesKey("national_averages_at")
         val themeMode = stringPreferencesKey("theme_mode")
@@ -146,6 +148,11 @@ class SettingsRepository(context: Context) {
         it[Keys.consumption] = consumption.coerceIn(2.0, 30.0)
         it[Keys.fillLiters] = fillLiters.coerceIn(5.0, 150.0)
     }
+
+    /** Favorites ("stationId:FUEL") whose shortage was already notified. */
+    suspend fun shortageNotified(): Set<String> = store.data.first()[Keys.shortageNotified].orEmpty()
+
+    suspend fun setShortageNotified(values: Set<String>) = store.edit { it[Keys.shortageNotified] = values }
 
     /** Cached national averages, as "GAZOLE=1.789;E10=1.85" with the time they were fetched. */
     suspend fun nationalAverages(): Pair<Map<Fuel, Double>, Long> {
