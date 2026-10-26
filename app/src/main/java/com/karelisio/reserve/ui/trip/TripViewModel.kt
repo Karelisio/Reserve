@@ -106,6 +106,10 @@ class TripViewModel(private val app: AppContainer) : ViewModel() {
         query.value = text
     }
 
+    fun onNavigate(item: RankedStation) = viewModelScope.launch {
+        app.stations.rememberTrip(item.station, item.price.fuel, item.effectivePrice)
+    }
+
     fun setFuel(fuel: Fuel) = viewModelScope.launch { app.settings.setFuel(fuel) }
 
     fun clear() {

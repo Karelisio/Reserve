@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.data.model.Station
 import java.util.Locale
@@ -38,6 +39,32 @@ object Navigator {
                 Uri.parse("geo:$lat,$lon?q=$lat,$lon(${Uri.encode(label)})"),
             )
         }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return try {
+            context.startActivity(intent)
+            true
+        } catch (e: ActivityNotFoundException) {
+            false
+        }
+    }
+
+    /**
+     * Drive to [destination] stopping at the station: Google Maps takes the station as a
+     * waypoint; Waze has no waypoints, so it navigates to the station first.
+     * Returns false if no app could open the route.
+     */
+    fun navigateVia(context: Context, station: Station, destination: LatLon, app: NavApp): Boolean {
+        if (app == NavApp.WAZE) return navigate(context, station, app)
+        fun p(lat: Double, lon: Double) = String.format(Locale.ROOT, "%.6f,%.6f", lat, lon)
+        val uri = Uri.parse("https://www.google.com/maps/dir/").buildUpon()
+            .appendQueryParameter("api", "1")
+            .appendQueryParameter("destination", p(destination.lat, destination.lon))
+            .appendQueryParameter("waypoints", p(station.lat, station.lon))
+            .appendQueryParameter("travelmode", "driving")
+            .appendQueryParameter("dir_action", "navigate")
+            .build()
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+            .setPackage(GOOGLE_MAPS.takeIf { isPackageInstalled(context, it) })
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return try {
             context.startActivity(intent)
             true

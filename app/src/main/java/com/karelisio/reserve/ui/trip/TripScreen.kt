@@ -1,5 +1,12 @@
 package com.karelisio.reserve.ui.trip
 
+import com.karelisio.reserve.ui.station.Navigator
+import com.karelisio.reserve.data.model.NavApp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.automirrored.rounded.AltRoute
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -71,6 +78,7 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
     val state by vm.state.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
     val focus = LocalFocusManager.current
+    val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -204,7 +212,26 @@ fun TripScreen(vm: TripViewModel, onOpenStation: (Long) -> Unit, favorites: Set<
                                 "À ${item.alongKm.roundToInt()} km du départ · ${Format.distance(item.offRouteKm)} de la route",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f),
                             )
+                            state.destination?.let { destination ->
+                                TextButton(onClick = {
+                                    haptics.confirm()
+                                    val app = state.settings.navApp
+                                    if (Navigator.navigateVia(context, item.ranked.station, destination.position, app)) {
+                                        vm.onNavigate(item.ranked)
+                                        if (app == NavApp.WAZE) {
+                                            Toast.makeText(context, "Waze ne gère pas les étapes : direction la station d'abord", Toast.LENGTH_LONG).show()
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "Aucune application de navigation trouvée", Toast.LENGTH_SHORT).show()
+                                    }
+                                }) {
+                                    Icon(Icons.AutoMirrored.Rounded.AltRoute, null, Modifier.size(18.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Via cette station")
+                                }
+                            }
                         }
                         StationCard(
                             item = item.ranked,
