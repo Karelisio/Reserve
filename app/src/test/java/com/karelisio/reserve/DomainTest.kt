@@ -141,3 +141,30 @@ class BestDayTest {
         assertEquals("mardi", best.label)
     }
 }
+
+class BackupFormatTest {
+    @Test
+    fun roundTrip() {
+        val file = com.karelisio.reserve.data.BackupFile(
+            exportedAt = 1L,
+            settings = com.karelisio.reserve.data.BackupSettings(
+                Fuel.E10, 15, SortMode.REAL_COST, com.karelisio.reserve.data.model.Filters(wash = true), 5.8, 45.0,
+                com.karelisio.reserve.data.model.NavApp.WAZE, true, 1.75, 5.0,
+                com.karelisio.reserve.data.model.ThemeMode.DARK, false, true,
+            ),
+            favorites = emptyList(),
+            fillUps = listOf(
+                com.karelisio.reserve.data.local.FillUpEntity(
+                    id = 3, date = 2L, stationId = 1L, stationLabel = "Leclerc", fuel = Fuel.E10, liters = 40.0,
+                    pricePerLiter = 1.7, odometerKm = 1000, fullTank = true, localAveragePrice = 1.75,
+                ),
+            ),
+            loyaltyCards = listOf(LoyaltyCardEntity(brandKey = "LECLERC", discount = 5.0, unit = DiscountUnit.CENTS_PER_LITER)),
+            priceHistory = emptyList(),
+            zoneAverages = emptyList(),
+        )
+        val json = com.karelisio.reserve.data.remote.Http.json
+        val text = json.encodeToString(com.karelisio.reserve.data.BackupFile.serializer(), file)
+        assertEquals(file, json.decodeFromString(com.karelisio.reserve.data.BackupFile.serializer(), text))
+    }
+}

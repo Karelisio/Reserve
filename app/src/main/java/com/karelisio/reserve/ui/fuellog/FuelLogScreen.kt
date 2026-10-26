@@ -1,5 +1,8 @@
 package com.karelisio.reserve.ui.fuellog
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.LocalGasStation
+import androidx.compose.material.icons.rounded.TableView
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -34,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,18 +48,21 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.karelisio.reserve.container
 import com.karelisio.reserve.data.local.FillUpEntity
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.FuelLogStats
 import com.karelisio.reserve.domain.MonthSpend
 import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.ui.home.EmptyState
+import kotlinx.coroutines.launch
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -70,6 +78,17 @@ fun FuelLogScreen(vm: FuelLogViewModel, startAdding: Boolean = false, onStartAdd
         }
     }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val csvExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            val ok = runCatching {
+                context.contentResolver.openOutputStream(uri)!!.use { context.container.backup.exportFillUpsCsv(it) }
+            }.isSuccess
+            Toast.makeText(context, if (ok) "Carnet exporté" else "Échec de l'export", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -78,6 +97,13 @@ fun FuelLogScreen(vm: FuelLogViewModel, startAdding: Boolean = false, onStartAdd
             MediumFlexibleTopAppBar(
                 title = { Text("Carnet de pleins") },
                 subtitle = { Text("Consommation, budget et économies") },
+                actions = {
+                    if (state.fillUps.isNotEmpty()) {
+                        IconButton(onClick = { csvExporter.launch("reserve-carnet-${java.time.LocalDate.now()}.csv") }) {
+                            Icon(Icons.Rounded.TableView, contentDescription = "Exporter en CSV")
+                        }
+                    }
+                },
                 scrollBehavior = scrollBehavior,
             )
         },

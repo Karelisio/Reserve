@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.karelisio.reserve.data.model.Fuel
+import kotlinx.serialization.Serializable
 
 /** Name and brand found in OpenStreetMap for an official station (null when no match). */
 @Entity(tableName = "osm_match")
@@ -14,6 +15,7 @@ data class OsmMatchEntity(
     val fetchedAt: Long,
 )
 
+@Serializable
 @Entity(tableName = "favorite")
 data class FavoriteEntity(
     @PrimaryKey val stationId: Long,
@@ -28,6 +30,7 @@ data class FavoriteEntity(
     val lastAlertPrice: Double? = null,
 )
 
+@Serializable
 @Entity(
     tableName = "price_history",
     indices = [Index(value = ["stationId", "fuel", "updatedAt"], unique = true)],
@@ -41,6 +44,7 @@ data class PriceHistoryEntity(
 )
 
 /** Daily average price of a fuel in a ~20 km zone, recorded locally to compute the trend. */
+@Serializable
 @Entity(tableName = "zone_average", primaryKeys = ["day", "zone", "fuel"])
 data class ZoneAverageEntity(
     val day: Long,
@@ -51,6 +55,7 @@ data class ZoneAverageEntity(
     val samples: Int,
 )
 
+@Serializable
 @Entity(tableName = "fill_up")
 data class FillUpEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -68,6 +73,7 @@ data class FillUpEntity(
 
 enum class DiscountUnit { CENTS_PER_LITER, PERCENT }
 
+@Serializable
 @Entity(tableName = "loyalty_card")
 data class LoyaltyCardEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

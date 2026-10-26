@@ -1,6 +1,7 @@
 package com.karelisio.reserve
 
 import android.content.Context
+import com.karelisio.reserve.data.BackupManager
 import com.karelisio.reserve.data.StationRepository
 import com.karelisio.reserve.data.local.AppDatabase
 import com.karelisio.reserve.data.prefs.SettingsRepository
@@ -24,6 +25,7 @@ class AppContainer(val context: Context) {
     /** Work that must outlive a screen (update download). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val updates = UpdateManager(context, http, settings, appScope)
+    val backup = BackupManager(this)
 }
 
 val Context.container: AppContainer

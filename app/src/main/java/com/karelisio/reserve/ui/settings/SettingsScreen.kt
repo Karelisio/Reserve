@@ -105,6 +105,7 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
                 )
             }
             PermissionsSection()
+            BackupSection()
             SettingsSection("À propos") {
                 val context = LocalContext.current
                 Text("Reserve ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.bodyLarge)

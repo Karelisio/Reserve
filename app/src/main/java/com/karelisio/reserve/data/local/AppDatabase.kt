@@ -64,6 +64,9 @@ interface PriceHistoryDao {
     @Query("SELECT * FROM price_history WHERE stationId = :stationId AND fuel = :fuel ORDER BY updatedAt DESC LIMIT 2")
     suspend fun lastTwo(stationId: Long, fuel: Fuel): List<PriceHistoryEntity>
 
+    @Query("SELECT * FROM price_history")
+    suspend fun all(): List<PriceHistoryEntity>
+
     @Query("DELETE FROM price_history WHERE updatedAt < :before")
     suspend fun prune(before: Long)
 }
@@ -79,6 +82,9 @@ interface ZoneAverageDao {
     @Query("SELECT * FROM zone_average WHERE zone = :zone AND fuel = :fuel AND day >= :fromDay ORDER BY day")
     suspend fun get(zone: String, fuel: Fuel, fromDay: Long): List<ZoneAverageEntity>
 
+    @Query("SELECT * FROM zone_average")
+    suspend fun all(): List<ZoneAverageEntity>
+
     @Query("DELETE FROM zone_average WHERE day < :beforeDay")
     suspend fun prune(beforeDay: Long)
 }
@@ -90,6 +96,9 @@ interface FillUpDao {
 
     @Insert
     suspend fun insert(fillUp: FillUpEntity): Long
+
+    @Query("SELECT * FROM fill_up ORDER BY date")
+    suspend fun all(): List<FillUpEntity>
 
     @Query("DELETE FROM fill_up WHERE id = :id")
     suspend fun delete(id: Long)
