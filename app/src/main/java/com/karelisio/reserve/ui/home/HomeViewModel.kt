@@ -1,5 +1,6 @@
 package com.karelisio.reserve.ui.home
 
+import com.karelisio.reserve.diagnostics.Diagnostics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.karelisio.reserve.AppContainer
@@ -155,6 +156,7 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
                 Surfaces.update(app.context)
                 transient.value = Transient(needsPermission = transient.value.needsPermission)
             } catch (e: Exception) {
+                Diagnostics.log("prix", "Actualisation impossible", e)
                 val cached = app.stations.lastResult.value
                 transient.value = Transient(
                     error = if (cached != null) "Hors ligne : prix du ${Format.dateTime(cached.fetchedAt)}"

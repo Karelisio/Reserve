@@ -1,5 +1,6 @@
 package com.karelisio.reserve.data.remote
 
+import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.data.model.Fuel
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.Station
@@ -74,6 +75,7 @@ class FuelApi(private val client: OkHttpClient) {
             fetch(where, offset, selectFields)
         } catch (e: HttpException) {
             if (e.code != 400 || !selectFields) throw e
+            Diagnostics.log("api", "Sélection de champs refusée, requête complète utilisée", e)
             selectFields = false
             fetch(where, offset, select = false)
         }.obj() ?: return@withPermit Page(0, emptyList())

@@ -1,5 +1,6 @@
 package com.karelisio.reserve.ui
 
+import com.karelisio.reserve.diagnostics.PendingCrashDialog
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -133,6 +134,7 @@ fun ReserveNavHost(
         onDone = { activity.container.updates.checkOnLaunch() },
     )
     UpdateDialog()
+    PendingCrashDialog()
 
     // After "Y aller", offer to log the fill-up when the user comes back.
     val logVm = appViewModel(owner = activity) { FuelLogViewModel(it) }

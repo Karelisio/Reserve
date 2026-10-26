@@ -1,5 +1,8 @@
 package com.karelisio.reserve.ui.settings
 
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material.icons.rounded.BugReport
+import com.karelisio.reserve.diagnostics.ReportDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -116,6 +119,12 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
                         Text("  Rechercher une mise à jour")
                     }
                 }
+                var reporting by remember { mutableStateOf(false) }
+                OutlinedButton(onClick = { reporting = true }, modifier = Modifier.padding(top = 8.dp)) {
+                    Icon(Icons.Rounded.BugReport, null)
+                    Text("  Signaler un problème")
+                }
+                if (reporting) ReportDialog(crash = null, onDismiss = { reporting = false })
                 Spacer(Modifier.height(12.dp))
                 Text(SOURCE_MENTION, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))

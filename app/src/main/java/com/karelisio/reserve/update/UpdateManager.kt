@@ -1,5 +1,6 @@
 package com.karelisio.reserve.update
 
+import com.karelisio.reserve.diagnostics.Diagnostics
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -97,6 +98,7 @@ class UpdateManager(
                 else -> UpdateState.Idle
             }
         } catch (e: Exception) {
+            Diagnostics.log("maj", "Vérification des mises à jour impossible", e)
             if (userInitiated) UpdateState.Failed("Impossible de vérifier les mises à jour. Vérifiez la connexion.", null)
             else UpdateState.Idle
         }
@@ -141,6 +143,7 @@ class UpdateManager(
                 _state.value = UpdateState.Installing(update)
                 install(apk)
             } catch (e: Exception) {
+                Diagnostics.log("maj", "Téléchargement ou installation impossible", e)
                 _state.value = UpdateState.Failed(e.message ?: "Échec du téléchargement.", update)
             }
         }

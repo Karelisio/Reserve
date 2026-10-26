@@ -1,5 +1,6 @@
 package com.karelisio.reserve.ui.trip
 
+import com.karelisio.reserve.diagnostics.Diagnostics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.karelisio.reserve.AppContainer
@@ -133,6 +134,7 @@ class TripViewModel(private val app: AppContainer) : ViewModel() {
                 data.value = withContext(Dispatchers.Default) { corridor(origin, destination, route, nearby) }
                 status.value = false to null
             } catch (e: Exception) {
+                Diagnostics.log("trajet", "Calcul du trajet impossible", e)
                 status.value = false to (e.message?.takeIf { it.isNotBlank() && e is IllegalStateException }
                     ?: "Impossible de calculer le trajet. Vérifiez la connexion.")
             }

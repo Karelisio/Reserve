@@ -1,5 +1,6 @@
 package com.karelisio.reserve.data.charging
 
+import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.remote.arr
 import com.karelisio.reserve.data.remote.dbl
@@ -49,7 +50,9 @@ class ChargingRepository(private val client: OkHttpClient) {
     private var irveResource: String? = null
 
     suspend fun around(center: LatLon, radiusKm: Double): ChargingResult {
-        val irve = runCatching { irve(center, radiusKm) }.getOrNull().orEmpty()
+        val irve = runCatching { irve(center, radiusKm) }
+            .onFailure { Diagnostics.log("bornes", "IRVE indisponible, repli OpenStreetMap", it) }
+            .getOrNull().orEmpty()
         val (stations, source) = if (irve.isNotEmpty()) irve to ChargingSource.IRVE else osm(center, radiusKm) to ChargingSource.OSM
         return ChargingResult(
             stations.filter { Geo.distanceKm(center, it.position) <= radiusKm }

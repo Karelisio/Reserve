@@ -1,5 +1,6 @@
 package com.karelisio.reserve.data
 
+import com.karelisio.reserve.diagnostics.Diagnostics
 import android.content.Context
 import com.karelisio.reserve.data.local.AppDatabase
 import com.karelisio.reserve.data.local.FavoriteEntity
@@ -110,7 +111,9 @@ class StationRepository(
     suspend fun nationalAverages(): Map<Fuel, Double> {
         val (cached, at) = settings.nationalAverages()
         if (cached.isNotEmpty() && System.currentTimeMillis() - at < NATIONAL_TTL) return cached
-        return runCatching { fuelApi.nationalAverages() }.getOrNull()
+        return runCatching { fuelApi.nationalAverages() }
+            .onFailure { Diagnostics.log("api", "Moyenne nationale indisponible", it) }
+            .getOrNull()
             ?.takeIf { it.isNotEmpty() }
             ?.also { settings.setNationalAverages(it, System.currentTimeMillis()) }
             ?: cached
@@ -160,7 +163,9 @@ class StationRepository(
             val match = cached[s.id]
             match == null || now - match.fetchedAt > if (match.brand == null) NO_MATCH_TTL else MATCH_TTL
         }
-        val fresh = if (missing.isEmpty()) emptyMap() else runCatching { matchWithOsm(missing, now) }.getOrDefault(emptyMap())
+        val fresh = if (missing.isEmpty()) emptyMap() else runCatching { matchWithOsm(missing, now) }
+            .onFailure { Diagnostics.log("osm", "Noms des stations indisponibles (Overpass)", it) }
+            .getOrDefault(emptyMap())
         return stations.map { s ->
             val match = fresh[s.id] ?: cached[s.id]
             if (match == null) s else s.copy(brand = match.brand ?: s.brand, name = match.name ?: s.name)

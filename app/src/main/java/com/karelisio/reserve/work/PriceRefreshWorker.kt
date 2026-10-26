@@ -1,5 +1,6 @@
 package com.karelisio.reserve.work
 
+import com.karelisio.reserve.diagnostics.Diagnostics
 import android.content.Context
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -38,7 +39,9 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
             System.currentTimeMillis() - cached.fetchedAt < FRESH_MS &&
             Geo.distanceKm(cached.center, center) < 1.0 && cached.radiusKm >= settings.radiusKm
         val aroundOk = center == null || cacheIsFresh ||
-            runCatching { app.stations.searchAround(center, settings.radiusKm) }.isSuccess
+            runCatching { app.stations.searchAround(center, settings.radiusKm) }
+                .onFailure { Diagnostics.log("tâche", "Actualisation en arrière-plan impossible", it) }
+                .isSuccess
         if (!cacheIsFresh) Surfaces.update(applicationContext)
 
         val alertsOk = !settings.alertsEnabled || runCatching { checkAlerts(settings.fuel, settings.alertThreshold, settings.alertDropCents) }.isSuccess
