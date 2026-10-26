@@ -1,0 +1,395 @@
+package com.karelisio.reserve.ui.station
+
+import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.Directions
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.HourglassBottom
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.karelisio.reserve.data.model.Fuel
+import com.karelisio.reserve.data.model.NavApp
+import com.karelisio.reserve.data.model.Station
+import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.Pricing
+import com.karelisio.reserve.ui.components.ConnectedChoice
+import com.karelisio.reserve.ui.components.PriceBadge
+import com.karelisio.reserve.ui.components.SourceFooter
+import com.karelisio.reserve.ui.components.Sparkline
+import com.karelisio.reserve.ui.components.Tag
+import com.karelisio.reserve.ui.components.rememberHaptics
+import java.time.LocalDate
+import java.time.LocalTime
+
+@Composable
+fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val haptics = rememberHaptics()
+    var askNavApp by rememberSaveable { mutableStateOf(false) }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    fun go(app: NavApp) {
+        val station = state.station ?: return
+        haptics.confirm()
+        if (!Navigator.navigate(context, station, app)) {
+            Toast.makeText(context, "Aucune application de navigation trouvée", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeFlexibleTopAppBar(
+                title = {
+                    Text(state.station?.displayName ?: "Station", maxLines = 2, overflow = TextOverflow.Ellipsis)
+                },
+                subtitle = { state.station?.let { Text(it.fullAddress, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Retour") }
+                },
+                actions = {
+                    IconToggleButton(
+                        checked = state.isFavorite,
+                        onCheckedChange = { haptics.toggle(it); vm.toggleFavorite() },
+                        enabled = state.station != null,
+                    ) {
+                        AnimatedContent(state.isFavorite, transitionSpec = { scaleIn() togetherWith scaleOut() }, label = "fav") { fav ->
+                            Icon(
+                                if (fav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                contentDescription = if (fav) "Retirer des favoris" else "Ajouter aux favoris",
+                                tint = if (fav) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+            )
+        },
+        floatingActionButton = {
+            if (state.station != null) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        when (state.settings.navApp) {
+                            NavApp.ASK -> { haptics.tick(); askNavApp = true }
+                            else -> go(state.settings.navApp)
+                        }
+                    },
+                    icon = { Icon(Icons.Rounded.Directions, null) },
+                    text = { Text("Y aller") },
+                )
+            }
+        },
+    ) { padding ->
+        val station = state.station
+        when {
+            station == null && state.loading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                LoadingIndicator()
+            }
+            station == null -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Text("Station introuvable", style = MaterialTheme.typography.bodyLarge)
+            }
+            else -> StationContent(
+                station = station,
+                state = state,
+                onHistoryFuel = vm::selectHistoryFuel,
+                padding = padding,
+            )
+        }
+    }
+
+    if (askNavApp) {
+        NavAppSheet(
+            onPick = { app -> askNavApp = false; go(app) },
+            onDismiss = { askNavApp = false },
+        )
+    }
+}
+
+@Composable
+private fun StationContent(
+    station: Station,
+    state: StationUiState,
+    onHistoryFuel: (Fuel) -> Unit,
+    padding: PaddingValues,
+) {
+    Column(
+        Modifier
+            .padding(padding)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp)
+            .navigationBarsPadding()
+            .padding(bottom = 88.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        state.ranked?.let { ranked -> SummaryCard(ranked, state) }
+        Section("Prix") { PricesTable(station, state.settings.fuel) }
+        Section("Historique") {
+            Column(Modifier.animateContentSize()) {
+                val fuels = station.prices.map { it.fuel }.sortedBy { it.ordinal }
+                if (fuels.size > 1) {
+                    ConnectedChoice(
+                        options = fuels.take(4),
+                        selected = state.historyFuel.takeIf { it in fuels } ?: fuels.first(),
+                        label = { it.label },
+                        onSelect = onHistoryFuel,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    )
+                }
+                val points = state.history.map { it.updatedAt to it.price }
+                when {
+                    !state.isFavorite && points.size < 2 -> Text(
+                        "Ajoutez cette station aux favoris pour suivre l'évolution de ses prix.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    points.isEmpty() -> Text("Pas encore d'historique pour ce carburant.", style = MaterialTheme.typography.bodyMedium)
+                    else -> {
+                        Sparkline(points, Modifier.fillMaxWidth().height(96.dp))
+                        Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                            Text(
+                                "Min ${Format.price(points.minOf { it.second })}",
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text("Max ${Format.price(points.maxOf { it.second })}", style = MaterialTheme.typography.labelLarge)
+                        }
+                        Text(
+                            "${points.size} relevé${if (points.size > 1) "s" else ""} depuis le ${Format.date(points.first().first)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+        Section("Horaires") { OpeningHours(station) }
+        if (station.services.isNotEmpty()) {
+            Section("Services") {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    station.services.sorted().forEach { service ->
+                        Tag(service, MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                }
+            }
+        }
+        if (station.isHighway) {
+            Text("Station sur autoroute", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        SourceFooter()
+    }
+}
+
+@Composable
+private fun SummaryCard(ranked: com.karelisio.reserve.domain.RankedStation, state: StationUiState) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = MaterialTheme.shapes.extraLarge,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            PriceBadge(ranked.effectivePrice, MaterialTheme.colorScheme.primary, highlighted = true)
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "${state.settings.fuel.label} · ${Format.distance(ranked.distanceKm)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Text(
+                    "Plein de ${Format.number(state.settings.fillLiters, 0)} L : ${Format.euros(ranked.totalCost)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Text(
+                    "Détour aller-retour inclus (${Format.distance(ranked.detourKm)})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                )
+                if (ranked.discount > 0) {
+                    Text(
+                        "Remise fidélité −${Format.cents(ranked.discount)}/L incluse",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Section(title: String, content: @Composable () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(12.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun PricesTable(station: Station, selected: Fuel) {
+    val now = System.currentTimeMillis()
+    val rows = Fuel.entries.mapNotNull { fuel ->
+        val price = station.priceOf(fuel)
+        val out = station.isOutOf(fuel)
+        if (price == null && !out) null else Triple(fuel, price, out)
+    }
+    if (rows.isEmpty()) {
+        Text("Aucun prix publié.", style = MaterialTheme.typography.bodyMedium)
+        return
+    }
+    Column {
+        rows.forEachIndexed { index, (fuel, price, out) ->
+            if (index > 0) HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        fuel.label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (fuel == selected) FontWeight.Bold else FontWeight.Normal,
+                    )
+                    if (price != null) {
+                        Text(
+                            "Mis à jour ${Format.age(price.updatedAt)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                when {
+                    out -> Tag("Rupture", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, icon = Icons.Rounded.Block)
+                    price != null && now - price.updatedAt > Pricing.STALE_AFTER_MS -> Tag(
+                        "Ancien", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer,
+                        icon = Icons.Rounded.HourglassBottom,
+                    )
+                    else -> Unit
+                }
+                if (price != null) {
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        Format.price(price.price),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (fuel == selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private val dayNames = listOf("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
+
+/** "Ouvert", "Fermé" or null when unknown, from the published opening hours. */
+fun openNow(station: Station, date: LocalDate = LocalDate.now(), time: LocalTime = LocalTime.now()): Boolean? {
+    val today = station.hours.firstOrNull { it.day == date.dayOfWeek.value } ?: return null
+    if (today.closed) return false
+    if (today.ranges.isEmpty()) return null
+    return today.ranges.any { range ->
+        val parts = range.split('–')
+        val open = parts.getOrNull(0)?.let { runCatching { LocalTime.parse(it) }.getOrNull() } ?: return@any false
+        val close = parts.getOrNull(1)?.let { runCatching { LocalTime.parse(it) }.getOrNull() } ?: return@any false
+        if (close <= open) time >= open || time < close else time >= open && time < close
+    }
+}
+
+@Composable
+private fun OpeningHours(station: Station) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (station.automate24) {
+                Tag("Automate CB 24/24", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, icon = Icons.Rounded.AccessTime)
+            }
+            when (openNow(station)) {
+                true -> Tag("Ouvert", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                false -> Tag("Fermé", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
+                null -> Unit
+            }
+        }
+        if (station.hours.isEmpty()) {
+            Text(
+                if (station.automate24) "Horaires de la boutique non publiés." else "Horaires non publiés.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        val today = LocalDate.now().dayOfWeek.value
+        station.hours.forEach { day ->
+            val isToday = day.day == today
+            Row {
+                Text(
+                    dayNames[day.day - 1],
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    when {
+                        day.closed -> "Fermé"
+                        day.ranges.isEmpty() -> "—"
+                        else -> day.ranges.joinToString("  ")
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}

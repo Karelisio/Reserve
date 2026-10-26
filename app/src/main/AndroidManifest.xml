@@ -8,6 +8,16 @@
 
     <uses-feature android:name="android.hardware.location" android:required="false" />
 
+    <!-- Navigation apps used by "Y aller" (package visibility, Android 11+). -->
+    <queries>
+        <package android:name="com.waze" />
+        <package android:name="com.google.android.apps.maps" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+    </queries>
+
     <application
         android:name=".ReserveApp"
         android:allowBackup="true"

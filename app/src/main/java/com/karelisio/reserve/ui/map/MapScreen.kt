@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Directions
 import androidx.compose.material.icons.rounded.MyLocation
+import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
@@ -36,11 +38,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karelisio.reserve.data.model.LatLon
+import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.RankedStation
 import com.karelisio.reserve.ui.components.FuelSelector
@@ -48,6 +52,8 @@ import com.karelisio.reserve.ui.components.PriceBadge
 import com.karelisio.reserve.ui.components.priceColor
 import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.ui.home.HomeViewModel
+import com.karelisio.reserve.ui.station.NavAppSheet
+import com.karelisio.reserve.ui.station.Navigator
 import com.karelisio.reserve.ui.theme.PriceColors
 
 /** Builds map markers colored from cheapest (green) to most expensive (red). */
@@ -77,6 +83,14 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit) {
     var cameraKey by remember { mutableIntStateOf(0) }
     val markers = rememberMarkers(state.stations, state.priceRange)
     val selected = state.stations.firstOrNull { it.station.id == selectedId }
+    val context = LocalContext.current
+    var askNavApp by rememberSaveable { mutableStateOf(false) }
+    if (askNavApp && selected != null) {
+        NavAppSheet(
+            onPick = { app -> askNavApp = false; Navigator.navigate(context, selected.station, app) },
+            onDismiss = { askNavApp = false },
+        )
+    }
 
     Box(Modifier.fillMaxSize()) {
         StationMap(
@@ -116,6 +130,11 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit) {
                         item = item,
                         range = state.priceRange,
                         onOpen = { onOpenStation(item.station.id) },
+                        onGo = {
+                            haptics.confirm()
+                            if (state.settings.navApp == NavApp.ASK) askNavApp = true
+                            else Navigator.navigate(context, item.station, state.settings.navApp)
+                        },
                     )
                 }
             }
@@ -128,6 +147,7 @@ private fun SelectedStationCard(
     item: RankedStation,
     range: ClosedFloatingPointRange<Double>?,
     onOpen: () -> Unit,
+    onGo: () -> Unit,
 ) {
     ElevatedCard(onClick = onOpen, shape = MaterialTheme.shapes.extraLarge, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
@@ -163,6 +183,12 @@ private fun SelectedStationCard(
                     Text("Voir la fiche")
                     Spacer(Modifier.width(6.dp))
                     Icon(Icons.AutoMirrored.Rounded.ArrowForward, null)
+                }
+                Spacer(Modifier.width(8.dp))
+                Button(onClick = onGo) {
+                    Icon(Icons.Rounded.Directions, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Y aller")
                 }
             }
         }
