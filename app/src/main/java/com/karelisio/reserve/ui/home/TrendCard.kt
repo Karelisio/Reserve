@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingFlat
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -104,6 +105,16 @@ fun TrendCard(trend: Trend, fuel: Fuel, modifier: Modifier = Modifier) {
                     endTime = trend.points.last().first,
                     stepped = false,
                 )
+            }
+            trend.bestDay?.let { best ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                    Icon(Icons.Rounded.CalendarMonth, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Meilleur jour : le ${best.label}, −${Format.cents(best.gap)} en moyenne",
+                        style = MaterialTheme.typography.bodyMediumEmphasized,
+                    )
+                }
             }
             if (trend.today != null && trend.weekAverage != null) {
                 Text(

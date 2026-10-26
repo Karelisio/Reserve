@@ -123,3 +123,21 @@ class TrendTest {
         assertEquals(null, few.direction)
     }
 }
+
+class BestDayTest {
+    @Test
+    fun findsCheapestWeekday() {
+        val today = java.time.LocalDate.now().toEpochDay()
+        val entries = (0L until 42L).map { back ->
+            val day = today - back
+            val weekday = java.time.LocalDate.ofEpochDay(day).dayOfWeek.value
+            // Prices rise over time, Tuesdays are 3 cents cheaper.
+            val avg = 1.80 + (42 - back) * 0.001 - if (weekday == 2) 0.03 else 0.0
+            com.karelisio.reserve.data.local.ZoneAverageEntity(day, "z", Fuel.GAZOLE, avg, avg, 10)
+        }
+        val best = com.karelisio.reserve.domain.TrendAnalyzer.bestDay(entries)!!
+        assertEquals(2, best.dayOfWeek)
+        assertEquals(0.026, best.gap, 0.004)
+        assertEquals("mardi", best.label)
+    }
+}

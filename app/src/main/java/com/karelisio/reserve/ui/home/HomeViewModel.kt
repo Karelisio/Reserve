@@ -70,7 +70,7 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         .flatMapLatest { (zone, fuel) ->
             if (zone == null) flowOf(null)
             else app.db.zoneAverages()
-                .observe(zone, fuel, LocalDate.now().toEpochDay() - TrendAnalyzer.WINDOW_DAYS)
+                .observe(zone, fuel, LocalDate.now().toEpochDay() - TrendAnalyzer.HISTORY_DAYS)
                 .map { TrendAnalyzer.analyze(it) }
         }
 
