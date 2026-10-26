@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.baselineprofile)
 }
 
 // Signing material is only provided by CI (GitHub secrets) or the developer's
@@ -94,6 +95,9 @@ ksp {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    // Applies the baseline profiles at install time, also for APKs installed outside the Play Store.
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

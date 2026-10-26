@@ -78,6 +78,10 @@ Gardez `reserve-release.jks` en lieu sûr : sans lui, impossible de publier une 
 
 En local, la signature se fait avec les variables `RESERVE_KEYSTORE_PATH`, `RESERVE_KEYSTORE_PASSWORD`, `RESERVE_KEY_ALIAS`, `RESERVE_KEY_PASSWORD`.
 
+## Baseline profile
+
+Le module `baselineprofile` enregistre le démarrage et la navigation sur un émulateur ; le profil obtenu est compilé à l'installation (démarrage et défilement plus rapides, y compris hors Play Store grâce à ProfileInstaller). Pour le régénérer : *Actions → Baseline profile → Run workflow* ; le profil est commité automatiquement et sera inclus dans la release suivante.
+
 ## Android Auto
 
 Pour une appli installée hors Play Store : dans Android Auto, *Paramètres → version (taper 10 fois) → mode développeur*, puis activer *Sources inconnues*. Test sur ordinateur avec le Desktop Head Unit (DHU) du SDK.
