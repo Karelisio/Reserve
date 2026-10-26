@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShortNavigationBar
@@ -26,14 +27,17 @@ import androidx.navigation.compose.rememberNavController
 import com.karelisio.reserve.ui.components.rememberHaptics
 import com.karelisio.reserve.ui.home.HomeScreen
 import com.karelisio.reserve.ui.home.HomeViewModel
+import com.karelisio.reserve.ui.map.MapScreen
 import kotlinx.serialization.Serializable
 
 @Serializable object HomeRoute
+@Serializable object MapRoute
 
 private data class TopLevel(val route: Any, val label: String, val icon: ImageVector)
 
 private val topLevels = listOf(
     TopLevel(HomeRoute, "Autour", Icons.AutoMirrored.Rounded.FormatListBulleted),
+    TopLevel(MapRoute, "Carte", Icons.Rounded.Map),
 )
 
 @Composable
@@ -83,6 +87,9 @@ fun ReserveNavHost(openStationId: Long?, onStationOpened: () -> Unit) {
         ) {
             composable<HomeRoute> {
                 HomeScreen(vm = homeVm, onOpenStation = {}, onOpenSettings = {})
+            }
+            composable<MapRoute> {
+                MapScreen(vm = homeVm, onOpenStation = {})
             }
         }
     }
