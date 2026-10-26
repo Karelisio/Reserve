@@ -1,5 +1,11 @@
 package com.karelisio.reserve.ui.home
 
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.FlowPreview
+import com.karelisio.reserve.domain.Brand
+import com.karelisio.reserve.data.remote.AddressSuggestion
+import com.karelisio.reserve.data.remote.AddressApi
 import com.karelisio.reserve.diagnostics.Diagnostics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -46,6 +52,12 @@ data class HomeUiState(
     val favorites: Set<Long> = emptySet(),
     val trend: Trend? = null,
     val national: Map<Fuel, Double> = emptyMap(),
+    /** Text typed in the search field (filters the list by name, brand, address). */
+    val query: String = "",
+    /** Places matching the query, to look for stations elsewhere. */
+    val placeSuggestions: List<AddressSuggestion> = emptyList(),
+    /** Place searched instead of the current position. */
+    val place: String? = null,
 ) {
     val origin: LatLon? get() = result?.center
     val best: RankedStation? get() = Pricing.best(stations)
@@ -54,14 +66,38 @@ data class HomeUiState(
             ?.let { it.min()..it.max() }
 }
 
+private data class Search(
+    val ranked: List<RankedStation>,
+    val query: String,
+    val suggestions: List<AddressSuggestion>,
+    val place: String?,
+) {
+    fun filtered(): List<RankedStation> {
+        val words = Brand.normalize(query).split(' ').filter { it.isNotBlank() }
+        if (words.isEmpty()) return ranked
+        return ranked.filter { item ->
+            val text = Brand.normalize(with(item.station) { "$displayName $address $city $postalCode" })
+            words.all { it in text }
+        }
+    }
+}
+
 private data class Transient(val loading: Boolean = false, val error: String? = null, val needsPermission: Boolean = false)
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class HomeViewModel(private val app: AppContainer) : ViewModel() {
 
     private val transient = MutableStateFlow(Transient())
     private val national = MutableStateFlow<Map<Fuel, Double>>(emptyMap())
     private var refreshJob: Job? = null
+    private val addressApi = AddressApi(app.http)
+    private val query = MutableStateFlow("")
+    private val placeSuggestions = MutableStateFlow<List<AddressSuggestion>>(emptyList())
+
+    /** Search around another place: kept apart from the cached result of the user's position. */
+    private data class PlaceSearch(val label: String, val center: LatLon, val result: SearchResult?)
+    private val place = MutableStateFlow<PlaceSearch?>(null)
+    private val shownResult = combine(app.stations.lastResult, place) { last, p -> if (p != null) p.result else last }
 
     private val cards = app.db.loyaltyCards().observeAll()
 
@@ -86,22 +122,25 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
             a.fuel == b.fuel && a.radiusKm == b.radiusKm && a.sort == b.sort && a.filters == b.filters &&
                 a.consumption == b.consumption && a.fillLiters == b.fillLiters
         },
-        app.stations.lastResult,
+        shownResult,
         cards,
     ) { settings, result, cards -> rank(settings, result, cards) }
         .flowOn(Dispatchers.Default)
 
     val state: StateFlow<HomeUiState> = combine(
         app.settings.settings,
-        app.stations.lastResult,
+        shownResult,
         app.db.favorites().observeIds(),
-        ranked,
+        combine(ranked, query, placeSuggestions, place) { r, q, s, p -> Search(r, q, s, p?.label) },
         combine(transient, trend, national) { t, tr, n -> Triple(t, tr, n) },
-    ) { settings, result, favorites, stations, (t, trend, national) ->
+    ) { settings, result, favorites, search, (t, trend, national) ->
         HomeUiState(
             settings = settings,
             result = result,
-            stations = stations,
+            stations = search.filtered(),
+            query = search.query,
+            placeSuggestions = search.suggestions,
+            place = search.place,
             loading = t.loading,
             error = t.error,
             needsLocationPermission = t.needsPermission,
@@ -112,6 +151,13 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(loading = true))
 
     init {
+        viewModelScope.launch {
+            query.debounce(350).distinctUntilChanged().collectLatest { q ->
+                placeSuggestions.value = if (q.trim().length < 3) emptyList()
+                else runCatching { addressApi.search(q, app.settings.current().lastLocation) }.getOrDefault(emptyList())
+                    .take(3)
+            }
+        }
         viewModelScope.launch { national.value = app.stations.nationalAverages() }
         viewModelScope.launch {
             val cached = app.stations.loadCache()
@@ -137,6 +183,7 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
 
     fun refresh(userInitiated: Boolean = false) {
         if (refreshJob?.isActive == true) return
+        place.value?.let { searchPlace(it.label, it.center); return }
         refreshJob = viewModelScope.launch {
             transient.value = transient.value.copy(loading = true, error = null)
             val settings = app.settings.current()
@@ -166,6 +213,39 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
+    fun setQuery(text: String) {
+        query.value = text
+    }
+
+    fun searchPlace(suggestion: AddressSuggestion) {
+        query.value = ""
+        placeSuggestions.value = emptyList()
+        searchPlace(suggestion.label, suggestion.position)
+    }
+
+    private fun searchPlace(label: String, center: LatLon) {
+        refreshJob?.cancel()
+        place.value = PlaceSearch(label, center, place.value?.takeIf { it.label == label }?.result)
+        refreshJob = viewModelScope.launch {
+            transient.value = transient.value.copy(loading = true, error = null)
+            try {
+                val result = app.stations.fetchAround(center, app.settings.current().radiusKm)
+                place.value = PlaceSearch(label, center, result)
+                transient.value = Transient()
+            } catch (e: Exception) {
+                Diagnostics.log("prix", "Recherche autour d'un lieu impossible", e)
+                transient.value = Transient(error = "Impossible de charger les prix autour de $label.")
+            }
+        }
+    }
+
+    /** Back to the stations around the user's position. */
+    fun clearPlace() {
+        refreshJob?.cancel()
+        place.value = null
+        transient.value = Transient()
+    }
+
     fun onLocationPermissionResult(granted: Boolean) {
         transient.value = transient.value.copy(needsPermission = !granted)
         if (granted) refresh()
@@ -185,6 +265,7 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
 
     fun setRadius(km: Int) = viewModelScope.launch {
         app.settings.setRadius(km)
+        place.value?.let { searchPlace(it.label, it.center); return@launch }
         val result = app.stations.lastResult.value
         // A smaller radius is filtered locally; a larger one needs new data.
         if (result == null || km > result.radiusKm) refresh()

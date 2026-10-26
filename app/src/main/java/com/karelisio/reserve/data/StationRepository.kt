@@ -50,10 +50,14 @@ class StationRepository(
         }?.also { _lastResult.value = it }
     }
 
+    /** Stations around any place, without touching the cache used by the widget and alerts. */
+    suspend fun fetchAround(center: LatLon, radiusKm: Int): SearchResult =
+        SearchResult(center, radiusKm, System.currentTimeMillis(), enrich(fuelApi.stationsAround(center, radiusKm.toDouble())))
+
     /** Fetches stations around [center], names them through OSM and stores the result. */
     suspend fun searchAround(center: LatLon, radiusKm: Int): SearchResult {
-        val stations = enrich(fuelApi.stationsAround(center, radiusKm.toDouble()))
-        val result = SearchResult(center, radiusKm, System.currentTimeMillis(), stations)
+        val result = fetchAround(center, radiusKm)
+        val stations = result.stations
         cacheMutex.withLock {
             _lastResult.value = result
             withContext(Dispatchers.IO) {

@@ -1,5 +1,6 @@
 package com.karelisio.reserve.ui.station
 
+import androidx.compose.material.icons.rounded.Share
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
@@ -96,6 +97,12 @@ fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Retour") }
                 },
                 actions = {
+                    state.station?.let { station ->
+                        IconButton(onClick = {
+                            haptics.tick()
+                            context.startActivity(shareIntent(station, state.settings.fuel))
+                        }) { Icon(Icons.Rounded.Share, contentDescription = "Partager") }
+                    }
                     IconToggleButton(
                         checked = state.isFavorite,
                         onCheckedChange = { haptics.toggle(it); vm.toggleFavorite() },
@@ -401,4 +408,22 @@ private fun OpeningHours(station: Station) {
             }
         }
     }
+}
+
+/** Plain text: prices, address and a map link (OpenStreetMap, no account needed). */
+private fun shareIntent(station: Station, fuel: Fuel): android.content.Intent {
+    val price = station.priceOf(fuel)
+    val text = buildString {
+        append(station.displayName)
+        price?.let { append(" : ${fuel.label} à ${Format.price(it.price)} (${Format.age(it.updatedAt)})") }
+        val others = station.prices.filter { it.fuel != fuel }.joinToString(", ") { "${it.fuel.label} ${Format.price(it.price)}" }
+        if (others.isNotEmpty()) append("\n$others")
+        append("\n${station.fullAddress}")
+        append(String.format(java.util.Locale.ROOT, "\nhttps://www.openstreetmap.org/?mlat=%.5f&mlon=%.5f#map=17/%.5f/%.5f", station.lat, station.lon, station.lat, station.lon))
+        append("\n— via Reserve")
+    }
+    return android.content.Intent.createChooser(
+        android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text),
+        "Partager la station",
+    )
 }

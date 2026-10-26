@@ -1,5 +1,16 @@
 package com.karelisio.reserve.ui.home
 
+import com.karelisio.reserve.data.remote.AddressSuggestion
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItem
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.SearchOff
+import androidx.compose.material.icons.rounded.Search
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -81,6 +92,7 @@ fun HomeScreen(
     val haptics = rememberHaptics()
     var showFilters by rememberSaveable { mutableStateOf(false) }
     var navigateTo by remember { mutableStateOf<RankedStation?>(null) }
+    var searching by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         vm.onLocationPermissionResult(it.values.any { granted -> granted })
@@ -95,9 +107,16 @@ fun HomeScreen(
                 title = { Text("Reserve") },
                 subtitle = {
                     val updated = state.result?.let { " · ${Format.age(it.fetchedAt)}" }.orEmpty()
-                    Text("${state.settings.fuel.label} · ${state.settings.radiusKm} km$updated")
+                    Text("${state.settings.fuel.label} · ${state.settings.radiusKm} km" + (state.place?.let { " · $it" } ?: updated))
                 },
                 actions = {
+                    IconButton(onClick = {
+                        haptics.tick()
+                        searching = !searching
+                        if (!searching) vm.setQuery("")
+                    }) {
+                        Icon(if (searching) Icons.Rounded.SearchOff else Icons.Rounded.Search, contentDescription = "Rechercher")
+                    }
                     IconButton(onClick = { haptics.confirm(); vm.refresh(userInitiated = true) }) {
                         Icon(Icons.Rounded.Refresh, contentDescription = "Actualiser")
                     }
@@ -127,6 +146,27 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
+                if (searching) {
+                    item(key = "search") {
+                        SearchField(
+                            query = state.query,
+                            suggestions = state.placeSuggestions,
+                            onQuery = vm::setQuery,
+                            onPlace = { haptics.confirm(); vm.searchPlace(it); searching = false },
+                            modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
+                        )
+                    }
+                }
+                state.place?.let { place ->
+                    item(key = "place") {
+                        InfoBanner(
+                            text = "Stations autour de $place",
+                            icon = Icons.Rounded.Place,
+                            modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
+                            action = { TextButton(onClick = { haptics.tick(); vm.clearPlace() }) { Text("Ma position") } },
+                        )
+                    }
+                }
                 item(key = "fuel") {
                     FuelSelector(state.settings.fuel, vm::setFuel, Modifier.fillMaxWidth(), onCharging = onOpenCharging)
                 }
@@ -267,6 +307,38 @@ fun EmptyState(text: String, action: (@Composable () -> Unit)? = null) {
         if (action != null) {
             Spacer(Modifier.height(16.dp))
             action()
+        }
+    }
+}
+
+/** Filters the list by name, brand or address; suggests places to search elsewhere. */
+@Composable
+private fun SearchField(
+    query: String,
+    suggestions: List<AddressSuggestion>,
+    onQuery: (String) -> Unit,
+    onPlace: (AddressSuggestion) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val focus = remember { FocusRequester() }
+    Column(modifier) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQuery,
+            placeholder = { Text("Station, enseigne ou ville…") },
+            leadingIcon = { Icon(Icons.Rounded.Search, null) },
+            singleLine = true,
+            shape = MaterialTheme.shapes.extraLarge,
+            modifier = Modifier.fillMaxWidth().focusRequester(focus),
+        )
+        LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+        suggestions.forEach { suggestion ->
+            ListItem(
+                onClick = { onPlace(suggestion) },
+                leadingContent = { Icon(Icons.Rounded.Place, null) },
+                supportingContent = { Text(suggestion.context) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            ) { Text("Rechercher autour de ${suggestion.label}") }
         }
     }
 }
