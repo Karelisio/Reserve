@@ -21,10 +21,10 @@ class AppContainer(val context: Context) {
     val db = AppDatabase.create(context)
     val settings = SettingsRepository(context)
     val location = LocationProvider(context)
-    val stations = StationRepository(context, settings, FuelApi(http), OverpassApi(http), db)
 
-    /** Work that must outlive a screen (update download). */
+    /** Work that must outlive a screen (update download, station names, caches). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val stations = StationRepository(context, settings, FuelApi(http), OverpassApi(http), db, appScope)
     val updates = UpdateManager(context, http, settings, appScope)
     val backup = BackupManager(this)
     val vehicles = VehicleRepository(db, settings)

@@ -18,13 +18,20 @@ import com.karelisio.reserve.data.remote.OsmFuelStation
 import com.karelisio.reserve.data.remote.OverpassApi
 import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.domain.Geo
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
@@ -36,6 +43,7 @@ class StationRepository(
     private val fuelApi: FuelApi,
     private val overpass: OverpassApi,
     private val db: AppDatabase,
+    private val scope: CoroutineScope,
 ) {
     private val cacheFile = File(context.filesDir, "last_result.json")
     private val cacheMutex = Mutex()
@@ -57,16 +65,27 @@ class StationRepository(
     /** Fetches stations around [center], names them through OSM and stores the result. */
     suspend fun searchAround(center: LatLon, radiusKm: Int): SearchResult {
         val result = fetchAround(center, radiusKm)
-        val stations = result.stations
-        cacheMutex.withLock {
-            _lastResult.value = result
-            withContext(Dispatchers.IO) {
-                runCatching { cacheFile.writeText(Http.json.encodeToString(SearchResult.serializer(), result)) }
-            }
-        }
-        recordZoneAverages(center, stations)
-        recordFavorites(stations)
+        _lastResult.value = result // Shown now; the writes below are local and quick.
+        saveCache(result)
+        recordZoneAverages(center, result.stations)
+        recordFavorites(result.stations)
         return result
+    }
+
+    private suspend fun saveCache(result: SearchResult) = cacheMutex.withLock {
+        withContext(Dispatchers.IO) {
+            runCatching { cacheFile.writeText(Http.json.encodeToString(SearchResult.serializer(), result)) }
+        }
+    }
+
+    /** Emitted when station names arrived from OpenStreetMap after the results were shown. */
+    private val _namesUpdated = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val namesUpdated: SharedFlow<Unit> = _namesUpdated.asSharedFlow()
+
+    /** Brands and names from the local OSM cache. */
+    suspend fun withCachedNames(stations: List<Station>): List<Station> {
+        val cached = db.osmMatches().byIds(stations.map { it.id }).associateBy { it.stationId }
+        return stations.map { s -> cached[s.id]?.let { s.named(it) } ?: s }
     }
 
     suspend fun stationsByIds(ids: Collection<Long>): List<Station> {
@@ -158,7 +177,11 @@ class StationRepository(
         db.priceHistory().prune(System.currentTimeMillis() - 365L * 24 * 3600 * 1000)
     }
 
-    /** Adds brand and name from OpenStreetMap (cached locally, refreshed monthly). */
+    /**
+     * Adds brand and name from OpenStreetMap (cached locally, refreshed monthly). Overpass is
+     * often slow: past [NAMES_BUDGET_MS] the results are shown with the names known so far,
+     * and the names are applied when they arrive (see [namesUpdated]).
+     */
     private suspend fun enrich(stations: List<Station>): List<Station> {
         if (stations.isEmpty()) return stations
         val now = System.currentTimeMillis()
@@ -167,14 +190,27 @@ class StationRepository(
             val match = cached[s.id]
             match == null || now - match.fetchedAt > if (match.brand == null) NO_MATCH_TTL else MATCH_TTL
         }
-        val fresh = if (missing.isEmpty()) emptyMap() else runCatching { matchWithOsm(missing, now) }
-            .onFailure { Diagnostics.log("osm", "Noms des stations indisponibles (Overpass)", it) }
-            .getOrDefault(emptyMap())
-        return stations.map { s ->
-            val match = fresh[s.id] ?: cached[s.id]
-            if (match == null) s else s.copy(brand = match.brand ?: s.brand, name = match.name ?: s.name)
+        val pending = if (missing.isEmpty()) null else scope.async {
+            runCatching { matchWithOsm(missing, now) }
+                .onFailure { Diagnostics.log("osm", "Noms des stations indisponibles (Overpass)", it) }
+                .getOrDefault(emptyMap())
         }
+        val fresh = pending?.let { withTimeoutOrNull(NAMES_BUDGET_MS) { it.await() } }
+        if (pending != null && fresh == null) {
+            scope.launch {
+                if (pending.await().isEmpty()) return@launch
+                _lastResult.value?.let { last ->
+                    val named = last.copy(stations = withCachedNames(last.stations))
+                    _lastResult.compareAndSet(last, named)
+                    saveCache(named)
+                }
+                _namesUpdated.emit(Unit)
+            }
+        }
+        return stations.map { s -> (fresh?.get(s.id) ?: cached[s.id])?.let { s.named(it) } ?: s }
     }
+
+    private fun Station.named(match: OsmMatchEntity) = copy(brand = match.brand ?: brand, name = match.name ?: name)
 
     private suspend fun matchWithOsm(stations: List<Station>, now: Long): Map<Long, OsmMatchEntity> {
         val osm = mutableListOf<OsmFuelStation>()
@@ -213,5 +249,6 @@ class StationRepository(
         private const val MATCH_TTL = 30L * 24 * 3600 * 1000
         private const val NATIONAL_TTL = 12L * 3600 * 1000
         private const val NO_MATCH_TTL = 7L * 24 * 3600 * 1000
+        private const val NAMES_BUDGET_MS = 1_500L
     }
 }

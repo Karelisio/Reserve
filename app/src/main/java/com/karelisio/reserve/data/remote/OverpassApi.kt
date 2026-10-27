@@ -5,16 +5,20 @@ import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 /** A fuel station mapped in OpenStreetMap (amenity=fuel). */
 data class OsmFuelStation(val position: LatLon, val brand: String?, val name: String?)
 
 /** OpenStreetMap data (ODbL) through the Overpass API, used to name the official stations. */
-class OverpassApi(private val client: OkHttpClient) {
+class OverpassApi(client: OkHttpClient) {
+
+    /** A busy server answers late: try the next one instead of waiting up to the read timeout. */
+    private val client = client.newBuilder().callTimeout(15, TimeUnit.SECONDS).build()
 
     suspend fun fuelStations(south: Double, west: Double, north: Double, east: Double): List<OsmFuelStation> {
         val bbox = String.format(Locale.ROOT, "%.5f,%.5f,%.5f,%.5f", south, west, north, east)
-        val query = "[out:json][timeout:25];nwr[\"amenity\"=\"fuel\"]($bbox);out center tags;"
+        val query = "[out:json][timeout:12];nwr[\"amenity\"=\"fuel\"]($bbox);out center tags;"
         var lastError: Exception? = null
         for (endpoint in ENDPOINTS) {
             try {

@@ -56,7 +56,7 @@ class StationsCarScreen(carContext: CarContext) : Screen(carContext) {
         val cached = app.stations.loadCache()
         val fresh = cached != null && System.currentTimeMillis() - cached.fetchedAt < 10 * 60 * 1000L
         val result = if (!refresh && fresh) cached else {
-            val center = app.location.current() ?: settings.lastLocation
+            val center = app.location.fast() ?: settings.lastLocation
             if (center == null) null
             else runCatching { app.stations.searchAround(center, settings.radiusKm).also { Surfaces.update(carContext) } }
                 .getOrNull() ?: cached

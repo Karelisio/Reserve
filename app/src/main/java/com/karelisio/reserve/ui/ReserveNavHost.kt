@@ -146,10 +146,10 @@ fun ReserveNavHost(
     UpdateDialog()
     PendingCrashDialog()
 
-    // New prices at launch and on each return when the user has moved.
+    // Position followed while on screen; new prices at launch and once the user has moved.
     LifecycleResumeEffect(homeVm) {
         homeVm.onResume()
-        onPauseOrDispose { }
+        onPauseOrDispose { homeVm.stopTracking() }
     }
 
     // After "Y aller", offer to log the fill-up when the user comes back.

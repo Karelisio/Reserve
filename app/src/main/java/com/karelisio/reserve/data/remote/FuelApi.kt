@@ -55,7 +55,39 @@ class FuelApi(private val client: OkHttpClient) {
         Locale.ROOT, "within_distance(geom, geom'POINT(%.6f %.6f)', %dm)", point.lon, point.lat, (radiusKm * 1000).toInt(),
     )
 
-    private suspend fun query(where: String): List<Station> = coroutineScope {
+    /**
+     * All matching stations in a single request through the export endpoint (no 100-row pages),
+     * with the paged records endpoint as fallback if the export fails or changes format.
+     */
+    private suspend fun query(where: String): List<Station> {
+        if (useExport) {
+            try {
+                exported(where)?.let { return it }
+                Diagnostics.log("api", "Export illisible, pages utilisées")
+            } catch (e: HttpException) {
+                Diagnostics.log("api", "Export refusé, pages utilisées", e)
+            }
+            useExport = false
+        }
+        return paged(where)
+    }
+
+    @Volatile
+    private var useExport = true
+
+    /** Null when the answer is not the expected list of records. */
+    private suspend fun exported(where: String): List<Station>? = concurrency.withPermit {
+        val url = EXPORT_URL.toHttpUrl().newBuilder()
+            .addQueryParameter("where", where)
+            .addQueryParameter("select", FIELDS)
+            .addQueryParameter("limit", "-1")
+            .build()
+        val rows = client.getJson(Request.Builder().url(url).build()).arr() ?: return@withPermit null
+        val stations = rows.mapNotNull { (it as? JsonObject)?.let(StationParser::parse) }
+        stations.takeIf { it.isNotEmpty() || rows.isEmpty() }?.distinctBy { it.id }
+    }
+
+    private suspend fun paged(where: String): List<Station> = coroutineScope {
         val first = page(where, offset = 0)
         val total = minOf(first.total, MAX_RECORDS)
         val rest = (PAGE_SIZE until total step PAGE_SIZE).map { offset ->
@@ -103,8 +135,10 @@ class FuelApi(private val client: OkHttpClient) {
             ) + listOf("gazole", "sp95", "e85", "gplc", "e10", "sp98").flatMap { listOf("${it}_prix", "${it}_maj") }
             ).joinToString(",")
 
-        const val BASE_URL =
-            "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records"
+        private const val DATASET_URL =
+            "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2"
+        const val BASE_URL = "$DATASET_URL/records"
+        private const val EXPORT_URL = "$DATASET_URL/exports/json"
         private const val PAGE_SIZE = 100
         private const val MAX_RECORDS = 1000
     }

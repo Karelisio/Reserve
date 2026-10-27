@@ -58,7 +58,7 @@ class ChargingViewModel(private val app: AppContainer) : ViewModel() {
     fun refresh() = viewModelScope.launch {
         data.value = data.value.copy(loading = true, error = null)
         val settings = app.settings.current()
-        val origin = app.location.current() ?: settings.lastLocation ?: app.stations.lastResult.value?.center
+        val origin = app.location.fast() ?: settings.lastLocation ?: app.stations.lastResult.value?.center
         if (origin == null) {
             data.value = data.value.copy(loading = false, error = t("Position indisponible. Activez la localisation.", "Location unavailable. Turn on location."))
             return@launch

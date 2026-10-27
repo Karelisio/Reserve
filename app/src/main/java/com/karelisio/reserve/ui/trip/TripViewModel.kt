@@ -128,7 +128,7 @@ class TripViewModel(private val app: AppContainer) : ViewModel() {
         job = viewModelScope.launch {
             status.value = true to null
             try {
-                val origin = app.location.current() ?: app.settings.current().lastLocation
+                val origin = app.location.fast() ?: app.settings.current().lastLocation
                     ?: throw IllegalStateException(
                         t("Position indisponible : activez la localisation.", "Location unavailable: turn on location."),
                     )

@@ -31,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -62,8 +63,9 @@ data class HomeUiState(
     val placeSuggestions: List<AddressSuggestion> = emptyList(),
     /** Place searched instead of the current position. */
     val place: String? = null,
+    /** Where distances are measured from: the live position, or the searched place. */
+    val origin: LatLon? = null,
 ) {
-    val origin: LatLon? get() = result?.center
     val best: RankedStation? get() = Pricing.best(stations)
     val priceRange: ClosedFloatingPointRange<Double>?
         get() = stations.filterNot { it.outOfStock }.map { it.effectivePrice }.takeIf { it.isNotEmpty() }
@@ -86,6 +88,8 @@ private data class Search(
     }
 }
 
+private data class Extras(val transient: Transient, val trend: Trend?, val national: Map<Fuel, Double>, val origin: LatLon?)
+
 private data class Transient(val loading: Boolean = false, val error: String? = null, val needsPermission: Boolean = false)
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -102,6 +106,23 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
     private data class PlaceSearch(val label: String, val center: LatLon, val result: SearchResult?)
     private val place = MutableStateFlow<PlaceSearch?>(null)
     private val shownResult = combine(app.stations.lastResult, place) { last, p -> if (p != null) p.result else last }
+
+    /** Live position while the app is on screen (see [startTracking]). */
+    private val here = MutableStateFlow<LatLon?>(null)
+    private var tracking: Job? = null
+
+    /**
+     * Distances follow the user between two searches: the live position is used as long as it
+     * stays inside the area already loaded, so moving does not wait for the network.
+     */
+    private val origin: Flow<LatLon?> = combine(shownResult, here, place) { result, position, searched ->
+        when {
+            result == null -> null
+            searched != null || position == null -> result.center
+            Geo.distanceKm(position, result.center) <= reloadDistanceKm(result.radiusKm) -> position
+            else -> result.center
+        }
+    }.distinctUntilChanged()
 
     private val cards = app.db.loyaltyCards().observeAll()
 
@@ -127,8 +148,9 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
                 a.consumption == b.consumption && a.fillLiters == b.fillLiters
         },
         shownResult,
+        origin,
         cards,
-    ) { settings, result, cards -> rank(settings, result, cards) }
+    ) { settings, result, origin, cards -> rank(settings, result, origin, cards) }
         .flowOn(Dispatchers.Default)
 
     val state: StateFlow<HomeUiState> = combine(
@@ -136,8 +158,8 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         shownResult,
         app.db.favorites().observeIds(),
         combine(ranked, query, placeSuggestions, place) { r, q, s, p -> Search(r, q, s, p?.label) },
-        combine(transient, trend, national) { t, tr, n -> Triple(t, tr, n) },
-    ) { settings, result, favorites, search, (t, trend, national) ->
+        combine(transient, trend, national, origin) { t, tr, n, o -> Extras(t, tr, n, o) },
+    ) { settings, result, favorites, search, (t, trend, national, origin) ->
         HomeUiState(
             settings = settings,
             result = result,
@@ -151,51 +173,88 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
             favorites = favorites.toSet(),
             trend = trend,
             national = national,
+            origin = origin,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(loading = true))
 
     init {
         viewModelScope.launch {
-            query.debounce(350).distinctUntilChanged().collectLatest { q ->
+            query.debounce(250).distinctUntilChanged().collectLatest { q ->
                 placeSuggestions.value = if (q.trim().length < 3) emptyList()
                 else runCatching { addressApi.search(q, app.settings.current().lastLocation) }.getOrDefault(emptyList())
                     .take(3)
             }
         }
         viewModelScope.launch { national.value = app.stations.nationalAverages() }
+        // Names that arrived late from OpenStreetMap, for a searched place.
+        viewModelScope.launch {
+            app.stations.namesUpdated.collect {
+                val searched = place.value ?: return@collect
+                val result = searched.result ?: return@collect
+                val named = result.copy(stations = app.stations.withCachedNames(result.stations))
+                if (place.value === searched) place.value = searched.copy(result = named)
+            }
+        }
     }
 
     /**
-     * At launch and each return to the app: new prices when the user has moved or the prices
-     * are old. The hourly task may have refreshed the cache around an older position.
+     * At launch and each return to the app: new prices when the user has left the loaded area
+     * or the prices are old. The hourly task may have refreshed the cache around an older
+     * position.
      */
     fun onResume() {
+        startTracking()
         if (refreshJob?.isActive == true || place.value != null) return
         refreshJob = viewModelScope.launch {
             val cached = app.stations.lastResult.value ?: app.stations.loadCache()
             val fresh = cached != null && System.currentTimeMillis() - cached.fetchedAt <= STALE_MS
-            var shown = cached?.center?.takeIf { fresh }
-            fun movedFrom(here: LatLon) = shown?.let { Geo.distanceKm(here, it) > MOVED_KM } ?: true
+            var loaded = cached?.takeIf { fresh }?.let { it.center to it.radiusKm }
+            fun needsLoad(position: LatLon) =
+                loaded?.let { (center, radius) -> Geo.distanceKm(position, center) > reloadDistanceKm(radius) } ?: true
             // 1. Instant: the position Android already knows, when recent.
-            app.location.recent(QUICK_FIX_MS)?.takeIf(::movedFrom)?.let { quick ->
-                load(quick)
-                shown = quick
+            app.location.recent(QUICK_FIX_MS)?.let { quick ->
+                here.value = quick
+                if (needsLoad(quick)) {
+                    load(quick)
+                    loaded = quick to app.settings.current().radiusKm
+                }
             }
-            // 2. A precise fix a few seconds later, only reloaded if it differs.
-            val here = app.location.current(timeoutMs = 8_000)
-            if (shown == null || (here != null && movedFrom(here))) load(here)
+            // 2. A new fix (first provider to answer), reloaded only if it is elsewhere.
+            val position = app.location.current(timeoutMs = 8_000)
+            if (position != null) here.value = position
+            if (loaded == null || (position != null && needsLoad(position))) load(position)
         }
     }
 
-    private fun rank(settings: Settings, result: SearchResult?, cards: List<LoyaltyCardEntity>): List<RankedStation> {
+    /** Follows the user while the app is on screen; reloads once they leave the loaded area. */
+    fun startTracking() {
+        if (tracking?.isActive == true || !app.location.hasPermission()) return
+        tracking = viewModelScope.launch {
+            app.location.updates().collect { position ->
+                here.value = position
+                val loaded = app.stations.lastResult.value ?: return@collect
+                val away = Geo.distanceKm(position, loaded.center) > reloadDistanceKm(loaded.radiusKm)
+                if (away && place.value == null && refreshJob?.isActive != true) {
+                    refreshJob = viewModelScope.launch { load(position) }
+                }
+            }
+        }
+    }
+
+    fun stopTracking() {
+        tracking?.cancel()
+    }
+
+    private fun rank(settings: Settings, result: SearchResult?, origin: LatLon?, cards: List<LoyaltyCardEntity>): List<RankedStation> {
         result ?: return emptyList()
+        val from = origin ?: result.center
         val inRadius = result.stations.filter {
-            Geo.distanceKm(result.center, LatLon(it.lat, it.lon)) <= settings.radiusKm + 0.05
+            Geo.distanceKm(from, LatLon(it.lat, it.lon)) <= settings.radiusKm + 0.05
         }
         val ranked = Pricing.rank(
             stations = inRadius,
             fuel = settings.fuel,
-            origin = result.center,
+            origin = from,
             vehicle = Vehicle(settings.consumption, settings.fillLiters),
             cards = cards,
             filters = settings.filters,
@@ -208,7 +267,7 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         place.value?.let { searchPlace(it.label, it.center); return }
         refreshJob = viewModelScope.launch {
             transient.value = transient.value.copy(loading = true, error = null)
-            load(app.location.current())
+            load(app.location.fast())
         }
     }
 
@@ -229,7 +288,10 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
             )
             return
         }
-        if (located != null) app.settings.setLastLocation(located)
+        if (located != null) {
+            here.value = located
+            app.settings.setLastLocation(located)
+        }
         try {
             app.stations.searchAround(center, settings.radiusKm)
             Surfaces.update(app.context)
@@ -298,7 +360,10 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
 
     fun onLocationPermissionResult(granted: Boolean) {
         transient.value = transient.value.copy(needsPermission = !granted)
-        if (granted) refresh()
+        if (granted) {
+            refresh()
+            startTracking()
+        }
     }
 
     fun setFuel(fuel: Fuel) = viewModelScope.launch {
@@ -333,6 +398,9 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
     companion object {
         private const val STALE_MS = 10 * 60 * 1000L
         private const val MOVED_KM = 1.0
-        private const val QUICK_FIX_MS = 15 * 60 * 1000L
+        private const val QUICK_FIX_MS = 5 * 60 * 1000L
+
+        /** Moving this far from the loaded center fetches new prices (a quarter of the radius). */
+        private fun reloadDistanceKm(radiusKm: Int) = maxOf(MOVED_KM, radiusKm * 0.25)
     }
 }
