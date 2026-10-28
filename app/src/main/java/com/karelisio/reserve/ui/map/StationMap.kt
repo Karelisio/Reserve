@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.ui.theme.isDarkColors
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -68,6 +69,10 @@ private const val LAYER_DOTS = "station-dots"
 private const val LAYER_LABELS = "station-labels"
 private const val LAYER_SELECTED = "station-selected"
 private const val SELECTED_ICON = "selected-icon"
+private const val LAYER_USER_PULSE = "user-pulse"
+private const val USER_COLOR = "#1A73E8"
+private const val USER_RADIUS = 9f
+private const val PULSE_MS = 2_000L
 
 @SuppressLint("ClickableViewAccessibility")
 @Composable
@@ -171,11 +176,22 @@ fun StationMap(
                     PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
                 ),
             )
+            // "You are here" in the usual blue, never in a station color, with a pulse.
+            loaded.addLayer(
+                CircleLayer(LAYER_USER_PULSE, SRC_USER).withProperties(
+                    PropertyFactory.circleRadius(USER_RADIUS),
+                    PropertyFactory.circleColor(USER_COLOR),
+                    PropertyFactory.circleOpacity(0f),
+                ),
+            )
             loaded.addLayer(
                 CircleLayer("user-halo", SRC_USER).withProperties(
-                    PropertyFactory.circleRadius(18f),
-                    PropertyFactory.circleColor(primary),
-                    PropertyFactory.circleOpacity(0.18f),
+                    PropertyFactory.circleRadius(20f),
+                    PropertyFactory.circleColor(USER_COLOR),
+                    PropertyFactory.circleOpacity(0.16f),
+                    PropertyFactory.circleStrokeColor(USER_COLOR),
+                    PropertyFactory.circleStrokeOpacity(0.35f),
+                    PropertyFactory.circleStrokeWidth(1f),
                 ),
             )
             loaded.addLayer(
@@ -184,14 +200,6 @@ fun StationMap(
                     PropertyFactory.circleColor(Expression.toColor(Expression.get("color"))),
                     PropertyFactory.circleStrokeColor(surface),
                     PropertyFactory.circleStrokeWidth(2f),
-                ),
-            )
-            loaded.addLayer(
-                CircleLayer("user-dot", SRC_USER).withProperties(
-                    PropertyFactory.circleRadius(8f),
-                    PropertyFactory.circleColor(primary),
-                    PropertyFactory.circleStrokeColor(surface),
-                    PropertyFactory.circleStrokeWidth(3f),
                 ),
             )
             loaded.addLayer(
@@ -204,6 +212,15 @@ fun StationMap(
                         PropertyFactory.iconAllowOverlap(false),
                         PropertyFactory.symbolSortKey(Expression.get("rank")),
                     ),
+            )
+            // Above the price pills, so a station never hides the user.
+            loaded.addLayer(
+                CircleLayer("user-dot", SRC_USER).withProperties(
+                    PropertyFactory.circleRadius(USER_RADIUS),
+                    PropertyFactory.circleColor(USER_COLOR),
+                    PropertyFactory.circleStrokeColor("#FFFFFF"),
+                    PropertyFactory.circleStrokeWidth(3.5f),
+                ),
             )
             loaded.addLayer(
                 SymbolLayer(LAYER_SELECTED, SRC_SELECTED).withProperties(
@@ -260,6 +277,21 @@ fun StationMap(
         val s = style ?: return@LaunchedEffect
         val features = buildJsonArray { userLocation?.let { add(point(it) {}) } }
         s.getSourceAs<GeoJsonSource>(SRC_USER)?.setGeoJson(collection(features))
+    }
+
+    // Soft pulse around the user (about 20 frames a second is enough for it).
+    LaunchedEffect(style, userLocation != null) {
+        val pulse = style?.getLayerAs<CircleLayer>(LAYER_USER_PULSE) ?: return@LaunchedEffect
+        if (userLocation == null) return@LaunchedEffect
+        val start = System.nanoTime()
+        while (true) {
+            val t = ((System.nanoTime() - start) / 1_000_000L % PULSE_MS).toFloat() / PULSE_MS
+            pulse.setProperties(
+                PropertyFactory.circleRadius(USER_RADIUS + 26f * t),
+                PropertyFactory.circleOpacity(0.4f * (1f - t)),
+            )
+            delay(50)
+        }
     }
 
     LaunchedEffect(style, route) {
