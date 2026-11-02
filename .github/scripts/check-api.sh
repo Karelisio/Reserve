@@ -6,6 +6,7 @@ CP="${1:-38270}"
 DATASET="https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2"
 FIELDS="id,geom,adresse,ville,cp,gazole_prix,gazole_maj,e10_prix,e10_maj,sp95_prix,sp95_maj,sp98_prix,sp98_maj,carburants_rupture_definitive"
 fail=0
+UA="Reserve-CI (https://github.com/Karelisio/Reserve)"
 check() { if eval "$2"; then echo "OK   $1"; else echo "FAIL $1"; fail=1; fi; }
 
 export_json=$(curl -sSf -G "$DATASET/exports/json" --data-urlencode "where=cp=\"$CP\"" --data-urlencode "select=$FIELDS" --data-urlencode "limit=-1")
@@ -20,8 +21,11 @@ check "records : même nombre que l'export" '[ "$(jq .total_count <<<"$records")
 near=$(curl -sSf -G "$DATASET/exports/json" --data-urlencode "where=within_distance(geom, geom'POINT(5.03 45.36)', 10000m)" --data-urlencode "select=id" --data-urlencode "limit=-1")
 check "within_distance accepté" '[ "$(jq length <<<"$near")" -gt 0 ]'
 
-check "API Adresse" 'curl -sSf "https://api-adresse.data.gouv.fr/search/?q=Primarette&limit=1" | jq -e ".features | length > 0" >/dev/null'
-check "Overpass" 'curl -sSf --max-time 60 https://overpass-api.de/api/interpreter --data-urlencode "data=[out:json][timeout:25];nwr[\"amenity\"=\"fuel\"](45.33,5.00,45.40,5.08);out center tags;" | jq -e ".elements | length > 0" >/dev/null'
+check "API Adresse" 'curl -sSf -A "$UA" "https://api-adresse.data.gouv.fr/search/?q=Primarette&limit=1" | jq -e ".features | length > 0" >/dev/null'
+# Overpass refuses anonymous clients (HTTP 406): identify like the app does, try both servers.
+OVERPASS_QUERY='[out:json][timeout:25];nwr["amenity"="fuel"](45.33,5.00,45.40,5.08);out center tags;'
+overpass() { curl -sSf --max-time 60 -A "$UA" "$1" --data-urlencode "data=$OVERPASS_QUERY" | jq -e ".elements | length > 0" >/dev/null; }
+check "Overpass" 'overpass https://overpass-api.de/api/interpreter || overpass https://overpass.kumi.systems/api/interpreter'
 
 echo
 echo "Stations du $CP :"
