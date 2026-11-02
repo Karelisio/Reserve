@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
@@ -24,9 +27,9 @@ import androidx.compose.ui.unit.dp
 import com.karelisio.reserve.data.model.Filters
 import com.karelisio.reserve.domain.t
 
-/** Active filters as removable chips. */
+/** Active filters as removable chips, then how many stations they hide. */
 @Composable
-fun ActiveFilters(filters: Filters, onChange: (Filters) -> Unit, modifier: Modifier = Modifier) {
+fun ActiveFilters(filters: Filters, onChange: (Filters) -> Unit, modifier: Modifier = Modifier, hidden: Int = 0) {
     val haptics = rememberHaptics()
     val active = listOfNotNull(
         (t("24/24 CB", "24/7 card") to filters.copy(open24 = false)).takeIf { filters.open24 },
@@ -46,6 +49,19 @@ fun ActiveFilters(filters: Filters, onChange: (Filters) -> Unit, modifier: Modif
                     onClick = { haptics.toggle(false); onChange(without) },
                     label = { Text(label) },
                     trailingIcon = { Icon(Icons.Rounded.Close, contentDescription = t("Retirer le filtre", "Remove filter"), Modifier.size(InputChipDefaults.IconSize)) },
+                    shape = MaterialTheme.shapes.small,
+                )
+            }
+            if (hidden > 0) {
+                AssistChip(
+                    onClick = { haptics.toggle(false); onChange(Filters()) },
+                    label = {
+                        Text(
+                            if (hidden == 1) t("1 station masquée · tout afficher", "1 station hidden · show all")
+                            else t("$hidden stations masquées · tout afficher", "$hidden stations hidden · show all"),
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Rounded.VisibilityOff, null, Modifier.size(AssistChipDefaults.IconSize)) },
                     shape = MaterialTheme.shapes.small,
                 )
             }

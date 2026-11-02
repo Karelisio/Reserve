@@ -12,10 +12,10 @@ enum class Fuel(
 ) {
     GAZOLE("gazole", setOf("gazole")),
     E10("e10", setOf("e10", "sp95-e10")),
+    SP95("sp95", setOf("sp95", "sp95-e5", "e5")),
     SP98("sp98", setOf("sp98")),
     E85("e85", setOf("e85")),
-    GPLC("gplc", setOf("gplc", "gpl")),
-    SP95("sp95", setOf("sp95"), selectable = false);
+    GPLC("gplc", setOf("gplc", "gpl"));
 
     val label: String
         get() = when (this) {
@@ -24,7 +24,7 @@ enum class Fuel(
             SP98 -> "SP98"
             E85 -> "E85"
             GPLC -> t("GPLc", "LPG")
-            SP95 -> "SP95"
+            SP95 -> "SP95-E5"
         }
 
     companion object {

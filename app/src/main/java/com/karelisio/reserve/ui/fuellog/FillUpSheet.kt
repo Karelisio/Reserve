@@ -81,7 +81,7 @@ fun FillUpSheet(
             ConnectedChoice(
                 options = Fuel.selectableEntries,
                 selected = fuel,
-                label = { if (it == Fuel.E10) "E10" else it.label },
+                label = { when (it) { Fuel.E10 -> "E10"; Fuel.SP95 -> "E5"; else -> it.label } },
                 onSelect = { fuel = it },
                 modifier = Modifier.fillMaxWidth(),
             )

@@ -231,7 +231,7 @@ fun HomeScreen(
                     }
                 }
                 item(key = "filters") {
-                    ActiveFilters(state.settings.filters, vm::setFilters, Modifier.fillMaxWidth())
+                    ActiveFilters(state.settings.filters, vm::setFilters, Modifier.fillMaxWidth(), hidden = state.hiddenByFilters)
                 }
                 state.error?.let { error ->
                     item(key = "error") {

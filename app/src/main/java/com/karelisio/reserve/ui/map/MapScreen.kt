@@ -120,7 +120,7 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit, onOpenCharging: 
 
         Column(Modifier.statusBarsPadding().padding(top = 8.dp)) {
             FuelSelector(state.settings.fuel, vm::setFuel, Modifier.fillMaxWidth(), onCharging = onOpenCharging)
-            ActiveFilters(state.settings.filters, vm::setFilters, Modifier.fillMaxWidth().padding(top = 4.dp))
+            ActiveFilters(state.settings.filters, vm::setFilters, Modifier.fillMaxWidth().padding(top = 4.dp), hidden = state.hiddenByFilters)
         }
 
         if (state.loading) {

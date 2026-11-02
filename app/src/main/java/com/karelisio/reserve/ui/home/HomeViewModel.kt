@@ -65,12 +65,17 @@ data class HomeUiState(
     val place: String? = null,
     /** Where distances are measured from: the live position, or the searched place. */
     val origin: LatLon? = null,
+    /** Stations selling the fuel in the radius that the active filters hide. */
+    val hiddenByFilters: Int = 0,
 ) {
     val best: RankedStation? get() = Pricing.best(stations)
     val priceRange: ClosedFloatingPointRange<Double>?
         get() = stations.filterNot { it.outOfStock }.map { it.effectivePrice }.takeIf { it.isNotEmpty() }
             ?.let { it.min()..it.max() }
 }
+
+/** Ranked stations, and how many selling the fuel nearby the filters left out. */
+private data class Ranking(val stations: List<RankedStation> = emptyList(), val hiddenByFilters: Int = 0)
 
 private data class Search(
     val ranked: List<RankedStation>,
@@ -157,13 +162,14 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         app.settings.settings,
         shownResult,
         app.db.favorites().observeIds(),
-        combine(ranked, query, placeSuggestions, place) { r, q, s, p -> Search(r, q, s, p?.label) },
+        combine(ranked, query, placeSuggestions, place) { r, q, s, p -> Search(r.stations, q, s, p?.label) to r.hiddenByFilters },
         combine(transient, trend, national, origin) { t, tr, n, o -> Extras(t, tr, n, o) },
-    ) { settings, result, favorites, search, (t, trend, national, origin) ->
+    ) { settings, result, favorites, (search, hidden), (t, trend, national, origin) ->
         HomeUiState(
             settings = settings,
             result = result,
             stations = search.filtered(),
+            hiddenByFilters = hidden,
             query = search.query,
             placeSuggestions = search.suggestions,
             place = search.place,
@@ -245,8 +251,8 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         tracking?.cancel()
     }
 
-    private fun rank(settings: Settings, result: SearchResult?, origin: LatLon?, cards: List<LoyaltyCardEntity>): List<RankedStation> {
-        result ?: return emptyList()
+    private fun rank(settings: Settings, result: SearchResult?, origin: LatLon?, cards: List<LoyaltyCardEntity>): Ranking {
+        result ?: return Ranking()
         val from = origin ?: result.center
         val inRadius = result.stations.filter {
             Geo.distanceKm(from, LatLon(it.lat, it.lon)) <= settings.radiusKm + 0.05
@@ -259,7 +265,8 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
             cards = cards,
             filters = settings.filters,
         )
-        return Pricing.sort(ranked, settings.sort)
+        val hidden = inRadius.count { it.priceOf(settings.fuel) != null && !settings.filters.accepts(it) }
+        return Ranking(Pricing.sort(ranked, settings.sort), hidden)
     }
 
     fun refresh(userInitiated: Boolean = false) {
