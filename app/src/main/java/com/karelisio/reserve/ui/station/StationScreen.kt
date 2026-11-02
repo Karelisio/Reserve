@@ -18,18 +18,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Directions
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -40,8 +44,10 @@ import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -153,6 +160,7 @@ fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
                 station = station,
                 state = state,
                 onHistoryFuel = vm::selectHistoryFuel,
+                onReport = vm::reportPrice,
                 padding = padding,
             )
         }
@@ -171,8 +179,18 @@ private fun StationContent(
     station: Station,
     state: StationUiState,
     onHistoryFuel: (Fuel) -> Unit,
+    onReport: (Fuel, Double) -> Unit,
     padding: PaddingValues,
 ) {
+    var reporting by rememberSaveable { mutableStateOf(false) }
+    if (reporting) {
+        ReportPriceDialog(
+            station = station,
+            initialFuel = state.settings.fuel,
+            onReport = { fuel, price -> reporting = false; onReport(fuel, price) },
+            onDismiss = { reporting = false },
+        )
+    }
     Column(
         Modifier
             .padding(padding)
@@ -183,7 +201,14 @@ private fun StationContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         state.ranked?.let { ranked -> SummaryCard(ranked, state) }
-        Section(t("Prix", "Prices")) { PricesTable(station, state.settings.fuel) }
+        Section(t("Prix", "Prices")) {
+            PricesTable(station, state.settings.fuel)
+            TextButton(onClick = { reporting = true }, modifier = Modifier.padding(top = 4.dp)) {
+                Icon(Icons.Rounded.EditNote, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(t("Prix différent sur place ? Le signaler", "Different price on site? Report it"))
+            }
+        }
         Section(t("Historique", "History")) {
             Column(Modifier.animateContentSize()) {
                 val fuels = station.prices.map { it.fuel }.sortedBy { it.ordinal }
@@ -357,7 +382,8 @@ private fun PricesTable(station: Station, selected: Fuel) {
                     )
                     if (price != null) {
                         Text(
-                            t("Mis à jour ${Format.age(price.updatedAt)}", "Updated ${Format.age(price.updatedAt)}"),
+                            if (price.reported) t("Signalé par vous ${Format.age(price.updatedAt)}", "Reported by you ${Format.age(price.updatedAt)}")
+                            else t("Mis à jour ${Format.age(price.updatedAt)}", "Updated ${Format.age(price.updatedAt)}"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -473,5 +499,50 @@ private fun shareIntent(station: Station, fuel: Fuel): android.content.Intent {
     return android.content.Intent.createChooser(
         android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text),
         t("Partager la station", "Share station"),
+    )
+}
+
+/** Price seen at the pump, kept on this phone until the station publishes a newer one. */
+@Composable
+private fun ReportPriceDialog(station: Station, initialFuel: Fuel, onReport: (Fuel, Double) -> Unit, onDismiss: () -> Unit) {
+    val fuels = (station.prices.map { it.fuel } + initialFuel).distinct().sortedBy { it.ordinal }
+    var fuel by rememberSaveable { mutableStateOf(initialFuel) }
+    var text by rememberSaveable { mutableStateOf(station.priceOf(initialFuel)?.price?.let { Format.number(it, 3) }.orEmpty()) }
+    val price = Format.parseDecimal(text)?.takeIf { it in 0.3..5.0 }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Rounded.EditNote, null) },
+        title = { Text(t("Signaler un prix", "Report a price")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    t(
+                        "Utilisé à la place du prix officiel jusqu'à ce que la station publie un prix plus récent (3 jours au plus). Il reste sur ce téléphone.",
+                        "Used instead of the official price until the station publishes a newer one (3 days at most). It stays on this phone.",
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ConnectedChoice(
+                    options = fuels.take(4),
+                    selected = fuel,
+                    label = { when (it) { Fuel.E10 -> "E10"; Fuel.SP95 -> "E5"; else -> it.label } },
+                    onSelect = { fuel = it; station.priceOf(it)?.let { p -> text = Format.number(p.price, 3) } },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text(t("Prix", "Price")) },
+                    suffix = { Text("€/L") },
+                    singleLine = true,
+                    isError = text.isNotBlank() && price == null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = { TextButton(enabled = price != null, onClick = { onReport(fuel, price!!) }) { Text(t("Signaler", "Report")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Annuler", "Cancel")) } },
     )
 }

@@ -16,6 +16,7 @@ import com.karelisio.reserve.data.model.Station
 import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.domain.Format
 import com.karelisio.reserve.domain.Geo
+import com.karelisio.reserve.domain.Pricing
 import com.karelisio.reserve.domain.RangeEstimator
 import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.notifications.Notifier
@@ -48,8 +49,43 @@ class PriceRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
 
         runCatching { checkRange() }.onFailure { Diagnostics.log("autonomie", "Estimation impossible", it) }
 
+        if (settings.alertsEnabled) {
+            runCatching { checkZoneDrop(settings.fuel, settings.alertDropCents) }
+                .onFailure { Diagnostics.log("alerte", "Baisse de zone non vérifiée", it) }
+        }
         val alertsOk = !settings.alertsEnabled || runCatching { checkAlerts(settings.fuel, settings.alertThreshold, settings.alertDropCents) }.isSuccess
         return if (aroundOk && alertsOk) Result.success() else Result.retry()
+    }
+
+    /**
+     * Not only favorites: when the cheapest fresh price around drops by the alert step since
+     * the last check in the same zone, one notification points to that station.
+     */
+    private suspend fun checkZoneDrop(fuel: Fuel, dropCents: Double) {
+        val app = applicationContext.container
+        val result = app.stations.lastResult.value ?: return
+        val freshLimit = System.currentTimeMillis() - Pricing.STALE_AFTER_MS
+        val (station, price) = result.stations
+            .filter { Geo.distanceKm(result.center, LatLon(it.lat, it.lon)) <= result.radiusKm && !it.isOutOf(fuel) }
+            .mapNotNull { s -> s.priceOf(fuel)?.takeIf { it.updatedAt > freshLimit }?.let { s to it.price } }
+            .minByOrNull { it.second } ?: return
+        val zone = Geo.zoneKey(result.center)
+        val previous = app.settings.zoneLow()?.takeIf { it.first == zone && it.second == fuel.name }?.third
+        if (previous != null && price <= previous - dropCents / 100 + 1e-6) {
+            Notifier.notify(
+                applicationContext, Notifier.CHANNEL_ALERTS, "zone:$zone:${fuel.name}".hashCode(),
+                title = t(
+                    "Baisse autour de vous : ${fuel.label} à ${Format.price(price)}",
+                    "Price drop near you: ${fuel.label} at ${Format.price(price)}",
+                ),
+                text = t(
+                    "${station.displayName}, ${Format.cents(previous - price)} de moins que le plus bas d'avant.",
+                    "${station.displayName}, ${Format.cents(previous - price)} below the previous lowest.",
+                ),
+                stationId = station.id,
+            )
+        }
+        if (previous == null || price != previous) app.settings.setZoneLow(zone, fuel, price)
     }
 
     /** Once per tank: low estimated range, with the cheapest station around. */

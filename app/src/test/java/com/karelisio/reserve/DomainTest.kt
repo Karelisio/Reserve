@@ -48,6 +48,23 @@ class DomainTest {
     }
 
     @Test
+    fun stalePriceRanksAfterAnEquallyCheapFreshOne() {
+        val origin = LatLon(48.0, 2.0)
+        val fresh = station(1, 48.001, 2.0, 1.800)
+        val old = station(2, 48.001, 2.0, 1.795).let { s ->
+            s.copy(prices = listOf(FuelPrice(Fuel.GAZOLE, 1.795, now - Pricing.STALE_AFTER_MS - 1)))
+        }
+        val ranked = Pricing.rank(listOf(old, fresh), Fuel.GAZOLE, origin, Vehicle(6.5, 40.0), emptyList(), now = now)
+        assertTrue(ranked.first { it.station.id == 2L }.stale)
+        assertEquals(1L, Pricing.sort(ranked, SortMode.PRICE).first().station.id)
+        assertEquals(1L, Pricing.best(ranked)?.station?.id)
+        // Much cheaper still wins despite its age.
+        val cheapOld = old.copy(prices = listOf(FuelPrice(Fuel.GAZOLE, 1.700, now - Pricing.STALE_AFTER_MS - 1)))
+        val ranked2 = Pricing.rank(listOf(cheapOld, fresh), Fuel.GAZOLE, origin, Vehicle(6.5, 40.0), emptyList(), now = now)
+        assertEquals(2L, Pricing.sort(ranked2, SortMode.PRICE).first().station.id)
+    }
+
+    @Test
     fun realCostPrefersNearStationWhenFarIsBarelyCheaper() {
         val origin = LatLon(48.0, 2.0)
         val near = station(1, 48.001, 2.0, 1.800)

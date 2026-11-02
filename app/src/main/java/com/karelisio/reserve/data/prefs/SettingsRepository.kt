@@ -91,6 +91,7 @@ class SettingsRepository(context: Context) {
         val askedBackground = booleanPreferencesKey("asked_background_location")
         val askedInstall = booleanPreferencesKey("asked_install_packages")
         val shortageNotified = stringSetPreferencesKey("shortage_notified")
+        val zoneLow = stringPreferencesKey("zone_low")
         val nationalAverages = stringPreferencesKey("national_averages")
         val nationalAt = longPreferencesKey("national_averages_at")
         val themeMode = stringPreferencesKey("theme_mode")
@@ -161,6 +162,12 @@ class SettingsRepository(context: Context) {
         it[Keys.consumption] = consumption.coerceIn(2.0, 30.0)
         it[Keys.fillLiters] = fillLiters.coerceIn(5.0, 150.0)
     }
+
+    /** Cheapest price seen around, as "zone|FUEL|price", to notify a drop once. */
+    suspend fun zoneLow(): Triple<String, String, Double>? = store.data.first()[Keys.zoneLow]?.split('|')
+        ?.takeIf { it.size == 3 }?.let { (zone, fuel, price) -> price.toDoubleOrNull()?.let { Triple(zone, fuel, it) } }
+
+    suspend fun setZoneLow(zone: String, fuel: Fuel, price: Double) = store.edit { it[Keys.zoneLow] = "$zone|${fuel.name}|$price" }
 
     /** Favorites ("stationId:FUEL") whose shortage was already notified. */
     suspend fun shortageNotified(): Set<String> = store.data.first()[Keys.shortageNotified].orEmpty()

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.HourglassBottom
@@ -105,12 +106,16 @@ fun StationCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                val hasTags = item.outOfStock || item.stale || item.discount > 0
+                val hasTags = item.outOfStock || item.stale || item.discount > 0 || item.price.reported
                 if (hasTags) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
                         if (item.outOfStock) Tag(
                             t("Rupture", "Out of stock"), MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer,
                             icon = Icons.Rounded.Block,
+                        )
+                        if (item.price.reported) Tag(
+                            t("Signalé par vous", "Reported by you"), MaterialTheme.colorScheme.secondaryContainer,
+                            MaterialTheme.colorScheme.onSecondaryContainer, icon = Icons.Rounded.EditNote,
                         )
                         if (item.stale) Tag(
                             t("Prix de plus de 3 j", "Price over 3 days old"), MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer,

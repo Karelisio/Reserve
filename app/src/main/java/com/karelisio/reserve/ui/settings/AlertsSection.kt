@@ -40,7 +40,7 @@ fun AlertsSection(
             Column(Modifier.weight(1f)) {
                 Text(t("Surveiller mes favoris", "Watch my favourites"), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    t("Vérification toutes les heures, notification en cas de baisse.", "Checked every hour, notified when prices drop."),
+                    t("Vérification toutes les heures : baisse sur vos favoris ou du prix le plus bas autour de vous.", "Checked every hour: drops at your favourites or of the lowest price around you."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

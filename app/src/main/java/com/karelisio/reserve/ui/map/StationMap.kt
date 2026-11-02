@@ -167,7 +167,7 @@ fun StationMap(
             }
             m.addOnMapClickListener { latLng ->
                 val point = m.projection.toScreenLocation(latLng)
-                val slop = 14 * context.resources.displayMetrics.density
+                val slop = with(density) { 14.dp.toPx() }
                 val rect = RectF(point.x - slop, point.y - slop, point.x + slop, point.y + slop)
                 fun stationAt(vararg layers: String) =
                     m.queryRenderedFeatures(rect, *layers).firstOrNull()?.getStringProperty("id")?.toLongOrNull()
