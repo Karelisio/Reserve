@@ -36,18 +36,25 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.karelisio.reserve.MainActivity
+import com.karelisio.reserve.container
+import com.karelisio.reserve.data.model.Fuel
+import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.domain.Format
+import com.karelisio.reserve.domain.Geo
 import com.karelisio.reserve.domain.RankedStation
+import com.karelisio.reserve.domain.TrendAnalyzer
+import com.karelisio.reserve.domain.TrendDirection
 import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.theme.GreenDarkScheme
 import com.karelisio.reserve.ui.theme.GreenLightScheme
 import com.karelisio.reserve.work.BestNearby
 import com.karelisio.reserve.work.Surfaces
+import java.time.LocalDate
 
 /** Home screen widget: cheapest fuel around the user, resizable, in dynamic colors. */
 class ReserveWidget : GlanceAppWidget() {
 
-    override val sizeMode = SizeMode.Responsive(setOf(SMALL, MEDIUM, LARGE))
+    override val sizeMode = SizeMode.Responsive(setOf(TINY, SMALL, MEDIUM, LARGE))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val config = WidgetConfig.read(context, id)
@@ -55,15 +62,34 @@ class ReserveWidget : GlanceAppWidget() {
             null -> Surfaces.bestNearby(context, config.fuel)
             else -> Surfaces.favorite(context, stationId, config.fuel)
         }
+        val trend = data?.let { runCatching { trendOf(context, it) }.getOrNull() }
         provideContent {
             GlanceTheme(colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) GlanceTheme.colors else fallbackColors) {
-                WidgetContent(context, data)
+                WidgetContent(context, data, trend)
             }
         }
     }
 
+    /**
+     * Direction of the local average price over the last week, as on the home screen.
+     * A pinned favorite uses its own zone when it has history, else the last search zone.
+     */
+    private suspend fun trendOf(context: Context, data: BestNearby): TrendDirection? {
+        val app = context.container
+        val center = app.stations.loadCache()?.center ?: app.settings.current().lastLocation
+        val pinned = data.best?.station?.takeIf { data.pinned }?.let { LatLon(it.lat, it.lon) }
+        val fromDay = LocalDate.now().toEpochDay() - TrendAnalyzer.WINDOW_DAYS
+        val entries = listOfNotNull(pinned, center).map(Geo::zoneKey).distinct()
+            .firstNotNullOfOrNull { zone -> app.db.zoneAverages().get(zone, data.fuel, fromDay).takeIf { it.isNotEmpty() } }
+            ?: return null
+        return TrendAnalyzer.analyze(entries).direction
+    }
+
     companion object {
-        private val SMALL = DpSize(110.dp, 48.dp)
+        /** 2×1: fuel, price and trend only. */
+        private val TINY = DpSize(110.dp, 48.dp)
+        /** 3×1 and wider single row. */
+        private val SMALL = DpSize(180.dp, 48.dp)
         private val MEDIUM = DpSize(180.dp, 110.dp)
         private val LARGE = DpSize(250.dp, 200.dp)
         private val fallbackColors = ColorProviders(light = GreenLightScheme, dark = GreenDarkScheme)
@@ -80,9 +106,10 @@ class ReserveWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun WidgetContent(context: Context, data: BestNearby?) {
+private fun WidgetContent(context: Context, data: BestNearby?, trend: TrendDirection?) {
     val size = LocalSize.current
     val best = data?.best
+    val tiny = size.width < 180.dp && size.height < 100.dp
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -93,19 +120,71 @@ private fun WidgetContent(context: Context, data: BestNearby?) {
                 else GlanceModifier,
             )
             .clickable(ReserveWidget.openStation(context, best?.station?.id))
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(horizontal = if (tiny) 12.dp else 14.dp, vertical = if (tiny) 6.dp else 10.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         when {
             data == null || best == null -> Text(
                 t("Ouvrez Reserve pour charger les prix autour de vous", "Open Reserve to load prices around you"),
-                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp),
+                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = if (tiny) 11.sp else 13.sp),
+                maxLines = if (tiny) 3 else Int.MAX_VALUE,
             )
+            tiny -> Tiny(data, best, trend)
             size.height < 100.dp -> Compact(data, best)
             else -> Expanded(context, data, best, showList = size.height >= 190.dp)
         }
     }
 }
+
+/** 2×1: short fuel name with the trend arrow, then the best price. */
+@Composable
+private fun Tiny(data: BestNearby, best: RankedStation, trend: TrendDirection?) {
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                data.fuel.shortLabel,
+                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                maxLines = 1,
+            )
+            if (trend != null) {
+                Spacer(GlanceModifier.width(4.dp))
+                Text(
+                    when (trend) {
+                        TrendDirection.DOWN -> "↘"
+                        TrendDirection.STABLE -> "→"
+                        TrendDirection.UP -> "↗"
+                    },
+                    style = TextStyle(
+                        color = when (trend) {
+                            TrendDirection.DOWN -> GlanceTheme.colors.primary
+                            TrendDirection.STABLE -> GlanceTheme.colors.onSurfaceVariant
+                            TrendDirection.UP -> GlanceTheme.colors.error
+                        },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+            }
+        }
+        Text(
+            Format.price(best.effectivePrice),
+            style = TextStyle(
+                color = if (best.outOfStock) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onSurface,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            maxLines = 1,
+        )
+    }
+}
+
+/** Fuel name short enough for a 2×1 widget. */
+private val Fuel.shortLabel: String
+    get() = when (this) {
+        Fuel.E10 -> "E10"
+        Fuel.SP95 -> "SP95"
+        else -> label
+    }
 
 @Composable
 private fun Compact(data: BestNearby, best: RankedStation) {

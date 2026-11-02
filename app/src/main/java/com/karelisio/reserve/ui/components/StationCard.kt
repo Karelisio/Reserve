@@ -60,6 +60,7 @@ fun StationCard(
                 price = item.effectivePrice,
                 color = if (item.outOfStock) MaterialTheme.colorScheme.surfaceVariant else priceColor(item.effectivePrice, priceRange),
                 highlighted = isBest,
+                stale = item.stale && !item.outOfStock,
             )
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {

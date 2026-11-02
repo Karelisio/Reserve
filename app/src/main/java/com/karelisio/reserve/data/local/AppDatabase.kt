@@ -113,6 +113,18 @@ interface FillUpDao {
 }
 
 @Dao
+interface ReportedPriceDao {
+    @Query("SELECT * FROM reported_price WHERE reportedAt > :since")
+    suspend fun since(since: Long): List<ReportedPriceEntity>
+
+    @Upsert
+    suspend fun upsert(report: ReportedPriceEntity)
+
+    @Query("DELETE FROM reported_price WHERE reportedAt <= :before")
+    suspend fun prune(before: Long)
+}
+
+@Dao
 interface VehicleDao {
     @Query("SELECT * FROM vehicle ORDER BY id")
     fun observeAll(): Flow<List<VehicleEntity>>
@@ -171,10 +183,11 @@ class Converters {
         FillUpEntity::class,
         LoyaltyCardEntity::class,
         VehicleEntity::class,
+        ReportedPriceEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -185,6 +198,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun fillUps(): FillUpDao
     abstract fun loyaltyCards(): LoyaltyCardDao
     abstract fun vehicles(): VehicleDao
+    abstract fun reportedPrices(): ReportedPriceDao
 
     companion object {
         const val NAME = "reserve.db"

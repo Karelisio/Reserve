@@ -24,6 +24,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.karelisio.reserve.data.model.LatLon
+import com.karelisio.reserve.domain.Lang
+import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.theme.isDarkColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -48,9 +50,16 @@ import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.SymbolLayer
+import org.maplibre.android.style.sources.GeoJsonOptions
 import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.Point
+import kotlin.math.roundToInt
 
-/** A station marker: [label] is drawn in a pill for the cheapest stations, others are dots. */
+/**
+ * A station marker: [label] is drawn in a pill for the cheapest stations, others are dots.
+ * [price] feeds the "from x" label of clusters; null (no fuel, out of stock) never counts.
+ */
 data class MapMarker(
     val id: Long,
     val position: LatLon,
@@ -59,6 +68,7 @@ data class MapMarker(
     val textColor: Int,
     val rank: Int,
     val showLabel: Boolean,
+    val price: Double? = null,
 )
 
 private const val SRC_STATIONS = "stations"
@@ -70,6 +80,18 @@ private const val LAYER_LABELS = "station-labels"
 private const val LAYER_SELECTED = "station-selected"
 private const val SELECTED_ICON = "selected-icon"
 private const val LAYER_USER_PULSE = "user-pulse"
+private const val LAYER_CLUSTERS = "station-clusters"
+private const val LAYER_CLUSTER_LABELS = "station-cluster-labels"
+private const val CLUSTER_ICON = "cluster-"
+private const val CLUSTER_RADIUS = 56
+private const val CLUSTER_MAX_ZOOM = 11
+
+/** Price in thousandths, an integer, so the cluster minimum maps to a stable image name. */
+private const val PROP_PRICE = "pm"
+private const val PROP_MIN_PRICE = "min_pm"
+
+/** Stands for "no price" in cluster minimums (way above any real price). */
+private const val NO_PRICE = 1_000_000
 private const val USER_COLOR = "#1A73E8"
 private const val USER_RADIUS = 9f
 private const val PULSE_MS = 2_000L
@@ -87,6 +109,8 @@ fun StationMap(
     /** Changing this value re-frames the camera on the markers. */
     cameraKey: Any? = Unit,
     contentPadding: PaddingValues = PaddingValues(),
+    /** Groups nearby markers when zoomed out, labelled with their lowest price (ignored along a route). */
+    clusterMarkers: Boolean = false,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -95,6 +119,10 @@ fun StationMap(
     val surface = colors.surface.toArgb()
     val primary = colors.primary.toArgb()
     val onPrimary = colors.onPrimary.toArgb()
+    val outline = colors.outline.toArgb()
+    val clusterFill = colors.primaryContainer.toArgb()
+    val onClusterFill = colors.onPrimaryContainer.toArgb()
+    val clustered = clusterMarkers && route.isEmpty()
 
     val mapView = remember {
         MapStyle.ensureInitialized(context)
@@ -105,6 +133,7 @@ fun StationMap(
     val markerImages = remember { mutableSetOf<String>() }
     val currentOnMarkerClick by rememberUpdatedState(onMarkerClick)
     val currentOnMapClick by rememberUpdatedState(onMapClick)
+    val currentClusterColors by rememberUpdatedState(Triple(clusterFill, onClusterFill, surface))
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle) {
@@ -139,25 +168,61 @@ fun StationMap(
             m.addOnMapClickListener { latLng ->
                 val point = m.projection.toScreenLocation(latLng)
                 val slop = 14 * context.resources.displayMetrics.density
-                val hit = m.queryRenderedFeatures(
-                    RectF(point.x - slop, point.y - slop, point.x + slop, point.y + slop),
-                    LAYER_SELECTED, LAYER_LABELS, LAYER_DOTS,
-                ).firstOrNull()?.getStringProperty("id")?.toLongOrNull()
-                if (hit != null) currentOnMarkerClick(hit) else currentOnMapClick()
+                val rect = RectF(point.x - slop, point.y - slop, point.x + slop, point.y + slop)
+                fun stationAt(vararg layers: String) =
+                    m.queryRenderedFeatures(rect, *layers).firstOrNull()?.getStringProperty("id")?.toLongOrNull()
+                // The selected pill is drawn on top, then clusters, then single stations.
+                val selectedHit = stationAt(LAYER_SELECTED)
+                val cluster = if (selectedHit == null && m.style?.getLayer(LAYER_CLUSTERS) != null) {
+                    m.queryRenderedFeatures(rect, LAYER_CLUSTER_LABELS, LAYER_CLUSTERS).firstOrNull()
+                } else null
+                val hit = selectedHit ?: if (cluster == null) stationAt(LAYER_LABELS, LAYER_DOTS) else null
+                when {
+                    hit != null -> currentOnMarkerClick(hit)
+                    cluster != null -> zoomIntoCluster(m, cluster, latLng)
+                    else -> currentOnMapClick()
+                }
                 true
+            }
+            // Cluster pills are drawn on demand: the image name carries the lowest price.
+            mapView.addOnStyleImageMissingListener { id ->
+                val milli = if (id.startsWith(CLUSTER_ICON)) id.removePrefix(CLUSTER_ICON).toIntOrNull() else null
+                val s = style
+                if (milli != null && s != null) {
+                    val (fill, text, outline) = currentClusterColors
+                    val label = t("dès ", "from ") + String.format(Lang.locale, "%.3f", milli / 1000.0)
+                    s.addImage(id, MapStyle.priceMarker(context, label, fill, text, outline, pointer = false))
+                }
             }
             map = m
         }
     }
 
     // (Re)build the style when the theme changes.
-    LaunchedEffect(map, dark, surface, primary) {
+    LaunchedEffect(map, dark, surface, primary, outline, clusterFill, onClusterFill, clustered) {
         val m = map ?: return@LaunchedEffect
         style = null
         markerImages.clear()
         m.setStyle(Style.Builder().fromJson(MapStyle.json(dark, surface))) { loaded ->
             loaded.addSource(GeoJsonSource(SRC_ROUTE))
-            loaded.addSource(GeoJsonSource(SRC_STATIONS))
+            loaded.addSource(
+                if (clustered) {
+                    GeoJsonSource(
+                        SRC_STATIONS,
+                        GeoJsonOptions()
+                            .withCluster(true)
+                            .withClusterRadius(CLUSTER_RADIUS)
+                            .withClusterMaxZoom(CLUSTER_MAX_ZOOM)
+                            .withClusterProperty(
+                                PROP_MIN_PRICE,
+                                Expression.min(Expression.accumulated(), Expression.get(PROP_MIN_PRICE)),
+                                Expression.coalesce(Expression.get(PROP_PRICE), Expression.literal(NO_PRICE)),
+                            ),
+                    )
+                } else {
+                    GeoJsonSource(SRC_STATIONS)
+                },
+            )
             loaded.addSource(GeoJsonSource(SRC_USER))
             loaded.addSource(GeoJsonSource(SRC_SELECTED))
             loaded.addLayer(
@@ -195,12 +260,14 @@ fun StationMap(
                 ),
             )
             loaded.addLayer(
-                CircleLayer(LAYER_DOTS, SRC_STATIONS).withProperties(
-                    PropertyFactory.circleRadius(6.5f),
-                    PropertyFactory.circleColor(Expression.toColor(Expression.get("color"))),
-                    PropertyFactory.circleStrokeColor(surface),
-                    PropertyFactory.circleStrokeWidth(2f),
-                ),
+                CircleLayer(LAYER_DOTS, SRC_STATIONS)
+                    .withFilter(Expression.not(Expression.has("point_count")))
+                    .withProperties(
+                        PropertyFactory.circleRadius(6.5f),
+                        PropertyFactory.circleColor(Expression.toColor(Expression.get("color"))),
+                        PropertyFactory.circleStrokeColor(surface),
+                        PropertyFactory.circleStrokeWidth(2f),
+                    ),
             )
             loaded.addLayer(
                 SymbolLayer(LAYER_LABELS, SRC_STATIONS)
@@ -213,6 +280,7 @@ fun StationMap(
                         PropertyFactory.symbolSortKey(Expression.get("rank")),
                     ),
             )
+            if (clustered) addClusterLayers(loaded, primary, outline)
             // Above the price pills, so a station never hides the user.
             loaded.addLayer(
                 CircleLayer("user-dot", SRC_USER).withProperties(
@@ -255,6 +323,7 @@ fun StationMap(
                     put("color", String.format(java.util.Locale.ROOT, "#%06X", m.color and 0xFFFFFF))
                     put("rank", m.rank)
                     if (m.showLabel) put("icon", "price-${m.id}-${m.label}-${m.color}")
+                    m.price?.let { put(PROP_PRICE, (it * 1000).roundToInt()) }
                 })
             }
         }
@@ -336,6 +405,54 @@ fun StationMap(
     }
 
     AndroidView(factory = { mapView }, modifier = modifier)
+}
+
+/** Grouped stations: a halo sized by their number, and a "from x" pill with the lowest price. */
+private fun addClusterLayers(style: Style, primary: Int, outline: Int) {
+    val minPrice = Expression.toNumber(Expression.get(PROP_MIN_PRICE))
+    val hasPrice = Expression.lt(minPrice, Expression.literal(NO_PRICE))
+    val tint = Expression.switchCase(hasPrice, Expression.color(primary), Expression.color(outline))
+    style.addLayer(
+        CircleLayer(LAYER_CLUSTERS, SRC_STATIONS)
+            .withFilter(Expression.has("point_count"))
+            .withProperties(
+                PropertyFactory.circleRadius(
+                    Expression.step(
+                        Expression.get("point_count"), Expression.literal(18f),
+                        Expression.stop(10, 22f), Expression.stop(50, 27f), Expression.stop(200, 32f),
+                    ),
+                ),
+                PropertyFactory.circleColor(tint),
+                PropertyFactory.circleOpacity(0.22f),
+                PropertyFactory.circleStrokeColor(tint),
+                PropertyFactory.circleStrokeOpacity(0.55f),
+                PropertyFactory.circleStrokeWidth(1.5f),
+            ),
+    )
+    style.addLayer(
+        SymbolLayer(LAYER_CLUSTER_LABELS, SRC_STATIONS)
+            .withFilter(Expression.all(Expression.has("point_count"), hasPrice))
+            .withProperties(
+                // No glyphs in the raster style: the label is a bitmap named after the price.
+                PropertyFactory.iconImage(
+                    Expression.concat(Expression.literal(CLUSTER_ICON), Expression.toString(Expression.get(PROP_MIN_PRICE))),
+                ),
+                PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
+                PropertyFactory.iconAllowOverlap(false),
+                PropertyFactory.symbolSortKey(minPrice),
+            ),
+    )
+}
+
+/** Zooms in far enough for the cluster to split, centered on it. */
+private fun zoomIntoCluster(map: MapLibreMap, cluster: Feature, tapped: LatLng) {
+    val current = map.cameraPosition.zoom
+    val expansion = runCatching {
+        map.style?.getSourceAs<GeoJsonSource>(SRC_STATIONS)?.getClusterExpansionZoom(cluster)?.toDouble()
+    }.getOrNull()
+    val zoom = maxOf(expansion ?: (current + 2), current + 1)
+    val center = (cluster.geometry() as? Point)?.let { LatLng(it.latitude(), it.longitude()) } ?: tapped
+    map.easeCamera(CameraUpdateFactory.newLatLngZoom(center, zoom), 450)
 }
 
 private fun point(p: LatLon, properties: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit) = buildJsonObject {

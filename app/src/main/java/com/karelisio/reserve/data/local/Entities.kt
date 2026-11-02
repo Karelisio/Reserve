@@ -99,3 +99,12 @@ data class LoyaltyCardEntity(
     val discount: Double,
     val unit: DiscountUnit,
 )
+
+/** A price the user saw on site: shown until the station publishes a newer one, 3 days at most. */
+@Entity(tableName = "reported_price", primaryKeys = ["stationId", "fuel"])
+data class ReportedPriceEntity(
+    val stationId: Long,
+    val fuel: Fuel,
+    val price: Double,
+    val reportedAt: Long,
+)

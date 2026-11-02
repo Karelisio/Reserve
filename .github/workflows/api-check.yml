@@ -1,0 +1,20 @@
+name: Vérification des API
+
+# Manual run, and every Monday: the public APIs answer as the app expects.
+on:
+  workflow_dispatch:
+    inputs:
+      postal_code:
+        description: Code postal à afficher
+        default: "38270"
+  schedule:
+    - cron: "17 6 * * 1"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Vérifier les API
+        run: .github/scripts/check-api.sh "${{ inputs.postal_code || '38270' }}"

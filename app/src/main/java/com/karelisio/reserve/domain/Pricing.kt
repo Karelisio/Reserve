@@ -32,6 +32,7 @@ data class Vehicle(val consumption: Double, val fillLiters: Double)
 
 object Pricing {
     const val STALE_AFTER_MS = 3L * 24 * 60 * 60 * 1000
+    const val STALE_PENALTY = 0.02
 
     fun discountFor(station: Station, price: Double, cards: List<LoyaltyCardEntity>): Double =
         cards.filter { Brand.fromKey(it.brandKey)?.matches(station.brand) == true }
@@ -81,11 +82,18 @@ object Pricing {
         return base.map { it.copy(savings = reference.totalCost - it.totalCost) }
     }
 
+    /**
+     * A price not updated for 3 days may no longer be true: it ranks as if it were
+     * [STALE_PENALTY] €/L dearer, so an equally cheap fresh price comes first.
+     */
+    private val RankedStation.penalty: Double get() = if (stale) STALE_PENALTY else 0.0
+    // In real-cost mode the penalty applies to the litres bought (cost / price).
+
     fun sort(list: List<RankedStation>, mode: SortMode): List<RankedStation> {
         val comparator = when (mode) {
-            SortMode.PRICE -> compareBy<RankedStation>({ it.effectivePrice }, { it.distanceKm })
+            SortMode.PRICE -> compareBy<RankedStation>({ it.effectivePrice + it.penalty }, { it.distanceKm })
             SortMode.DISTANCE -> compareBy({ it.distanceKm })
-            SortMode.REAL_COST -> compareBy({ it.totalCost }, { it.distanceKm })
+            SortMode.REAL_COST -> compareBy({ it.totalCost + it.penalty * it.totalCost / it.effectivePrice }, { it.distanceKm })
         }
         // Stations out of stock always go last.
         return list.sortedWith(compareBy<RankedStation> { it.outOfStock }.then(comparator))
@@ -93,5 +101,5 @@ object Pricing {
 
     /** Best choice for the widget, tile, alerts: real cost, ignoring shortages. */
     fun best(list: List<RankedStation>): RankedStation? =
-        list.filterNot { it.outOfStock }.minWithOrNull(compareBy({ it.totalCost }, { it.distanceKm }))
+        list.filterNot { it.outOfStock }.minWithOrNull(compareBy({ it.totalCost + it.penalty * it.totalCost / it.effectivePrice }, { it.distanceKm }))
 }

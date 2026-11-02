@@ -51,6 +51,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.karelisio.reserve.Shortcuts
 import com.karelisio.reserve.container
+import com.karelisio.reserve.data.model.NavApp
 import com.karelisio.reserve.diagnostics.PendingCrashDialog
 import com.karelisio.reserve.domain.t
 import com.karelisio.reserve.ui.charging.ChargingScreen
@@ -68,11 +69,14 @@ import com.karelisio.reserve.ui.map.MapScreen
 import com.karelisio.reserve.ui.permissions.LaunchPermissions
 import com.karelisio.reserve.ui.settings.SettingsScreen
 import com.karelisio.reserve.ui.settings.SettingsViewModel
+import com.karelisio.reserve.ui.station.Navigator
 import com.karelisio.reserve.ui.station.StationScreen
 import com.karelisio.reserve.ui.station.StationViewModel
 import com.karelisio.reserve.ui.trip.TripScreen
 import com.karelisio.reserve.ui.trip.TripViewModel
 import com.karelisio.reserve.ui.update.UpdateDialog
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 
 @Serializable object HomeRoute
@@ -129,6 +133,11 @@ fun ReserveNavHost(
             Shortcuts.MAP -> MapRoute
             Shortcuts.TRIP -> TripRoute
             Shortcuts.FILL_UP -> FuelLogRoute.also { addFillUp = true }
+            Shortcuts.FILL_NOW -> {
+                onDestinationOpened()
+                fillUpNow(activity, homeVm)
+                return@LaunchedEffect
+            }
             else -> return@LaunchedEffect
         }
         nav.navigate(route) {
@@ -289,4 +298,16 @@ private fun ListDetail(openStation: (Long) -> Unit, list: @Composable (onOpen: (
             }
         }
     }
+}
+
+/**
+ * "Plein maintenant": waits for the prices around (at most 15 s), then opens the navigation
+ * app towards the best station by real cost. Stays on the list if nothing is found.
+ */
+private suspend fun fillUpNow(context: android.content.Context, vm: HomeViewModel) {
+    val best = withTimeoutOrNull(15_000) {
+        vm.state.first { !it.loading && it.best != null && it.place == null }.best
+    } ?: return
+    val app = vm.state.value.settings.navApp.takeUnless { it == NavApp.ASK } ?: NavApp.OTHER
+    if (Navigator.navigate(context, best.station, app)) vm.onNavigate(best)
 }

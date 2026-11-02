@@ -44,6 +44,8 @@ data class FuelPrice(
     val price: Double,
     /** Last update of the price, epoch milliseconds. */
     val updatedAt: Long,
+    /** Seen on site by the user, not (yet) published by the station. */
+    val reported: Boolean = false,
 )
 
 @Serializable

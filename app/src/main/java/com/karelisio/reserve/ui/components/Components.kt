@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -85,10 +86,14 @@ fun priceColor(price: Double, range: ClosedFloatingPointRange<Double>?): Color {
     return PriceColors.scale(fraction, MaterialTheme.colorScheme.primary, isDarkColors)
 }
 
-/** Price in an expressive "cookie" shape, tinted along the price scale. */
+/**
+ * Price in an expressive "cookie" shape, tinted along the price scale. A [stale] price (over
+ * 3 days old) is faded towards grey and says so instead of the unit.
+ */
 @Composable
-fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highlighted: Boolean = false) {
-    val animated by animateColorAsState(color, label = "priceColor")
+fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highlighted: Boolean = false, stale: Boolean = false) {
+    val shown = if (stale) lerp(color, MaterialTheme.colorScheme.surfaceVariant, 0.6f) else color
+    val animated by animateColorAsState(shown, label = "priceColor")
     val scale by animateFloatAsState(if (highlighted) 1.06f else 1f, label = "priceScale")
     val shape = (if (highlighted) MaterialShapes.Cookie9Sided else MaterialShapes.Square).toShape()
     Box(
@@ -101,7 +106,10 @@ fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highl
         val label = String.format(com.karelisio.reserve.domain.Lang.locale, "%.3f", price)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.clearAndSetSemantics { contentDescription = t("$label euros le litre", "$label euros per litre") },
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = t("$label euros le litre", "$label euros per litre") +
+                    if (stale) t(", prix de plus de 3 jours", ", price over 3 days old") else ""
+            },
         ) {
             Text(
                 text = label,
@@ -110,7 +118,7 @@ fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highl
                 maxLines = 1,
             )
             Text(
-                text = "€/L",
+                text = if (stale) t("€/L · ancien", "€/L · old") else "€/L",
                 style = MaterialTheme.typography.labelSmall,
                 color = PriceColors.onColor(animated).copy(alpha = 0.85f),
             )

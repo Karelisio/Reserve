@@ -15,8 +15,12 @@ object Shortcuts {
     const val TRIP = "trip"
     const val FILL_UP = "fillup"
 
+    /** Straight to the navigation app, towards the best station by real cost. */
+    const val FILL_NOW = "fillnow"
+
     fun publish(context: Context) {
         val shortcuts = listOf(
+            Triple(FILL_NOW, t("Plein maintenant", "Fill up now"), R.drawable.ic_shortcut_around),
             Triple(AROUND, t("Moins cher autour", "Cheapest nearby"), R.drawable.ic_shortcut_around),
             Triple(MAP, t("Carte des prix", "Price map"), R.drawable.ic_shortcut_map),
             Triple(TRIP, t("Sur mon trajet", "On my route"), R.drawable.ic_shortcut_trip),

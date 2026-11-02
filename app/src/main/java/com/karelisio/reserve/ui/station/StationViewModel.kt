@@ -92,6 +92,12 @@ class StationViewModel(private val app: AppContainer, private val stationId: Lon
         if (state.value.isFavorite) app.stations.removeFavorite(s.id) else app.stations.addFavorite(s)
     }
 
+    /** A price seen on site, used until the station publishes a newer one. */
+    fun reportPrice(fuel: Fuel, price: Double) = viewModelScope.launch {
+        val s = station.value ?: return@launch
+        station.value = app.stations.reportPrice(s, fuel, price)
+    }
+
     /** Remembers the trip so the fill-up can be logged when the user comes back. */
     fun onNavigate() = viewModelScope.launch {
         val s = station.value ?: return@launch

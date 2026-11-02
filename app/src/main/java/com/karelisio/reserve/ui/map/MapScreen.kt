@@ -77,6 +77,7 @@ fun rememberMarkers(stations: List<RankedStation>, range: ClosedFloatingPointRan
                 textColor = PriceColors.onColor(color).toArgb(),
                 rank = rank,
                 showLabel = rank < maxLabels && !item.outOfStock,
+                price = if (item.outOfStock) null else item.effectivePrice,
             )
         }
     }
@@ -126,6 +127,7 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit, onOpenCharging: 
             cameraKey = state.result?.fetchedAt?.let { it + cameraKey },
             contentPadding = PaddingValues(bottom = if (selected != null) 180.dp else 0.dp),
             modifier = Modifier.fillMaxSize(),
+            clusterMarkers = true,
         )
 
         Column(Modifier.statusBarsPadding().padding(top = 8.dp)) {

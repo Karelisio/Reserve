@@ -5,8 +5,10 @@ import com.karelisio.reserve.data.local.AppDatabase
 import com.karelisio.reserve.data.local.FavoriteEntity
 import com.karelisio.reserve.data.local.OsmMatchEntity
 import com.karelisio.reserve.data.local.PriceHistoryEntity
+import com.karelisio.reserve.data.local.ReportedPriceEntity
 import com.karelisio.reserve.data.local.ZoneAverageEntity
 import com.karelisio.reserve.data.model.Fuel
+import com.karelisio.reserve.data.model.FuelPrice
 import com.karelisio.reserve.data.model.LatLon
 import com.karelisio.reserve.data.model.SearchResult
 import com.karelisio.reserve.data.model.Station
@@ -18,6 +20,7 @@ import com.karelisio.reserve.data.remote.OsmFuelStation
 import com.karelisio.reserve.data.remote.OverpassApi
 import com.karelisio.reserve.diagnostics.Diagnostics
 import com.karelisio.reserve.domain.Geo
+import com.karelisio.reserve.domain.Pricing
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -158,7 +161,7 @@ class StationRepository(
 
     private suspend fun recordHistory(stations: List<Station>) {
         val entries = stations.flatMap { station ->
-            station.prices.map { PriceHistoryEntity(stationId = station.id, fuel = it.fuel, price = it.price, updatedAt = it.updatedAt) }
+            station.prices.filterNot { it.reported }.map { PriceHistoryEntity(stationId = station.id, fuel = it.fuel, price = it.price, updatedAt = it.updatedAt) }
         }
         if (entries.isNotEmpty()) db.priceHistory().insert(entries)
     }
@@ -168,7 +171,7 @@ class StationRepository(
         val freshLimit = System.currentTimeMillis() - 3L * 24 * 3600 * 1000
         val zone = Geo.zoneKey(center)
         val entries = Fuel.entries.mapNotNull { fuel ->
-            val prices = stations.mapNotNull { s -> s.priceOf(fuel)?.takeIf { it.updatedAt > freshLimit }?.price }
+            val prices = stations.mapNotNull { s -> s.priceOf(fuel)?.takeIf { it.updatedAt > freshLimit && !it.reported }?.price }
             if (prices.size < 2) return@mapNotNull null
             ZoneAverageEntity(today, zone, fuel, prices.average(), prices.min(), prices.size)
         }
@@ -207,7 +210,40 @@ class StationRepository(
                 _namesUpdated.emit(Unit)
             }
         }
-        return stations.map { s -> (fresh?.get(s.id) ?: cached[s.id])?.let { s.named(it) } ?: s }
+        return withReports(stations.map { s -> (fresh?.get(s.id) ?: cached[s.id])?.let { s.named(it) } ?: s })
+    }
+
+    /** Prices the user reported replace older official ones (see [ReportedPriceEntity]). */
+    private suspend fun withReports(stations: List<Station>): List<Station> {
+        val reports = db.reportedPrices().since(System.currentTimeMillis() - REPORT_TTL).groupBy { it.stationId }
+        if (reports.isEmpty()) return stations
+        return stations.map { station ->
+            val mine = reports[station.id] ?: return@map station
+            var prices = station.prices
+            mine.forEach { report ->
+                val official = prices.firstOrNull { it.fuel == report.fuel }
+                if (official == null || official.updatedAt < report.reportedAt) {
+                    prices = prices.filterNot { it.fuel == report.fuel } +
+                        FuelPrice(report.fuel, report.price, report.reportedAt, reported = true)
+                }
+            }
+            station.copy(prices = prices)
+        }
+    }
+
+    /** Records a price seen on site and shows it at once in the last results. */
+    suspend fun reportPrice(station: Station, fuel: Fuel, price: Double): Station {
+        val now = System.currentTimeMillis()
+        db.reportedPrices().prune(now - REPORT_TTL)
+        db.reportedPrices().upsert(ReportedPriceEntity(station.id, fuel, price, now))
+        _lastResult.value?.let { last ->
+            if (last.stations.any { it.id == station.id }) {
+                val updated = last.copy(stations = withReports(last.stations))
+                _lastResult.value = updated
+                saveCache(updated)
+            }
+        }
+        return withReports(listOf(station)).first()
     }
 
     private fun Station.named(match: OsmMatchEntity) = copy(brand = match.brand ?: brand, name = match.name ?: name)
@@ -250,5 +286,6 @@ class StationRepository(
         private const val NATIONAL_TTL = 12L * 3600 * 1000
         private const val NO_MATCH_TTL = 7L * 24 * 3600 * 1000
         private const val NAMES_BUDGET_MS = 1_500L
+        private const val REPORT_TTL = Pricing.STALE_AFTER_MS
     }
 }

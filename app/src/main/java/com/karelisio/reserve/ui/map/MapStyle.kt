@@ -61,8 +61,16 @@ object MapStyle {
         """.trimIndent()
     }
 
-    /** Price "pill" pointing to the station, drawn in the price scale color. */
-    fun priceMarker(context: Context, text: String, fill: Int, textColor: Int, outline: Int, large: Boolean = false): Bitmap {
+    /** Price "pill" pointing to the station (or a plain pill for a cluster), drawn in the price scale color. */
+    fun priceMarker(
+        context: Context,
+        text: String,
+        fill: Int,
+        textColor: Int,
+        outline: Int,
+        large: Boolean = false,
+        pointer: Boolean = true,
+    ): Bitmap {
         val density = context.resources.displayMetrics.density
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = textColor
@@ -71,14 +79,14 @@ object MapStyle {
         }
         val padH = 9 * density
         val padV = 5 * density
-        val pointer = 6 * density
+        val pointerSize = if (pointer) 6 * density else 0f
         val stroke = 2 * density
         val textWidth = textPaint.measureText(text)
         val metrics = textPaint.fontMetrics
         val textHeight = metrics.descent - metrics.ascent
         val width = (textWidth + 2 * padH + 2 * stroke).toInt()
         val bodyHeight = textHeight + 2 * padV
-        val height = (bodyHeight + pointer + 2 * stroke).toInt()
+        val height = (bodyHeight + pointerSize + 2 * stroke).toInt()
 
         val bitmap = createBitmap(width, height)
         val canvas = Canvas(bitmap)
@@ -86,10 +94,12 @@ object MapStyle {
         val radius = bodyHeight / 2
         val shape = Path().apply {
             addRoundRect(body, radius, radius, Path.Direction.CW)
-            moveTo(width / 2f - pointer, body.bottom - 1)
-            lineTo(width / 2f, body.bottom + pointer)
-            lineTo(width / 2f + pointer, body.bottom - 1)
-            close()
+            if (pointer) {
+                moveTo(width / 2f - pointerSize, body.bottom - 1)
+                lineTo(width / 2f, body.bottom + pointerSize)
+                lineTo(width / 2f + pointerSize, body.bottom - 1)
+                close()
+            }
         }
         canvas.drawPath(shape, Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = outline
