@@ -54,8 +54,15 @@ class SmokeTest {
     @Before
     fun launch() {
         scenario = ActivityScenario.launch(MainActivity::class.java)
-        // The splash screen stays until the settings are read.
-        assertNotNull("Navigation bar not shown", device.wait(Until.findObject(tab(TABS.first())), LAUNCH_TIMEOUT_MS))
+        // The splash screen stays until the settings are read; launch dialogs may cover the app
+        // (UiAutomator then only sees the dialog window), so they are closed while waiting.
+        val deadline = System.currentTimeMillis() + LAUNCH_TIMEOUT_MS
+        while (System.currentTimeMillis() < deadline && device.findObject(tab(TABS.first())) == null) {
+            closeDialog()
+            device.waitForIdle(POLL_MS)
+            Thread.sleep(POLL_MS)
+        }
+        assertNotNull("Navigation bar not shown", device.findObject(tab(TABS.first())))
         dismissLaunchDialogs()
     }
 
@@ -104,13 +111,18 @@ class SmokeTest {
     private fun dismissLaunchDialogs() {
         val deadline = System.currentTimeMillis() + DIALOG_GRACE_MS
         while (System.currentTimeMillis() < deadline) {
-            val later = device.findObject(By.text(words("Plus tard", "Later")))
-            when {
-                later != null -> later.click()
-                // Its buttons open other apps: back closes it and acknowledges the crash.
-                device.hasObject(By.text(Pattern.compile("Reserve (s'est arrêtée|stopped).*"))) -> device.pressBack()
-                else -> Thread.sleep(POLL_MS)
-            }
+            if (!closeDialog()) Thread.sleep(POLL_MS)
+        }
+    }
+
+    /** Closes one launch dialog if shown; true when something was closed. */
+    private fun closeDialog(): Boolean {
+        val later = device.findObject(By.text(words("Plus tard", "Later")))
+        return when {
+            later != null -> { later.click(); true }
+            // Its buttons open other apps: back closes it and acknowledges the crash.
+            device.hasObject(By.text(Pattern.compile("Reserve (s'est arrêtée|stopped).*"))) -> { device.pressBack(); true }
+            else -> false
         }
     }
 
@@ -120,9 +132,11 @@ class SmokeTest {
 
     private fun find(selector: BySelector): UiObject2? = device.wait(Until.findObject(selector), SCREEN_TIMEOUT_MS)
 
-    /** A navigation item: the label inside a clickable item (the Favourites title has the same text). */
-    private fun tab(label: Pair<String, String>): BySelector =
-        By.clickable(true).hasDescendant(By.text(words(label.first, label.second)))
+    /**
+     * A navigation item. Compose merges the label into the clickable item, so the text is on
+     * the item itself or on a child, depending on the version.
+     */
+    private fun tab(label: Pair<String, String>): BySelector = By.text(words(label.first, label.second))
 
     private fun words(fr: String, en: String): Pattern = Pattern.compile("${Pattern.quote(fr)}|${Pattern.quote(en)}")
 
