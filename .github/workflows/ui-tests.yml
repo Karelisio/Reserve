@@ -54,6 +54,7 @@ jobs:
             adb logcat -c
             adb logcat -v time > logcat.txt &
             ./gradlew :app:connectedDebugAndroidTest --info | grep -E "SmokeTest|Tests on|FAILED|PASSED|BUILD" || true
+            grep -rh -A8 "<failure" app/build/outputs/androidTest-results/connected/ | head -80 || true
             test -n "$(ls app/build/outputs/androidTest-results/connected/ 2>/dev/null)" && ! grep -rq "<failure" app/build/outputs/androidTest-results/connected/
 
       - name: Rapports des tests
