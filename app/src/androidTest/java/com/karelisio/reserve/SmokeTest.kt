@@ -62,7 +62,7 @@ class SmokeTest {
             device.waitForIdle(POLL_MS)
             Thread.sleep(POLL_MS)
         }
-        assertNotNull("Navigation bar not shown", device.findObject(tab(TABS.first())))
+        assertNotNull("Navigation bar not shown. On screen: ${screenSummary()}", device.findObject(tab(TABS.first())))
         dismissLaunchDialogs()
     }
 
@@ -124,6 +124,15 @@ class SmokeTest {
             device.hasObject(By.text(Pattern.compile("Reserve (s'est arrêtée|stopped).*"))) -> { device.pressBack(); true }
             else -> false
         }
+    }
+
+    /** Texts and descriptions on screen, to understand a failure from the CI log alone. */
+    private fun screenSummary(): String {
+        val out = java.io.ByteArrayOutputStream()
+        runCatching { device.dumpWindowHierarchy(out) }
+        val xml = out.toString()
+        val values = Regex("""(?:text|content-desc|package)="([^"]+)"""").findAll(xml).map { it.groupValues[1] }.distinct()
+        return "[current=${device.currentPackageName}] " + values.joinToString(" | ").take(1500)
     }
 
     private fun assertAlive() {
