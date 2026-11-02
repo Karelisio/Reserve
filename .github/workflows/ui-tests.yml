@@ -51,6 +51,7 @@ jobs:
           disable-animations: true
           # The device log is kept to understand a failure or a stuck test.
           script: |
+            adb shell settings put global hide_error_dialogs 1
             adb logcat -c
             adb logcat -v time > logcat.txt &
             ./gradlew :app:connectedDebugAndroidTest --info | grep -E "SmokeTest|Tests on|FAILED|PASSED|BUILD" || true

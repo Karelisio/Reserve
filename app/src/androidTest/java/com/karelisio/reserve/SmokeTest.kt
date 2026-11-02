@@ -118,7 +118,12 @@ class SmokeTest {
     /** Closes one launch dialog if shown; true when something was closed. */
     private fun closeDialog(): Boolean {
         val later = device.findObject(By.text(words("Plus tard", "Later")))
+        // A slow emulator sometimes shows "<System app> isn't responding" over everything.
+        val systemWait = if (device.hasObject(By.textContains("isn't responding")) || device.hasObject(By.textContains("ne répond pas"))) {
+            device.findObject(By.text(words("Attendre", "Wait")))
+        } else null
         return when {
+            systemWait != null -> { systemWait.click(); true }
             later != null -> { later.click(); true }
             // Its buttons open other apps: back closes it and acknowledges the crash.
             device.hasObject(By.text(Pattern.compile("Reserve (s'est arrêtée|stopped).*"))) -> { device.pressBack(); true }
