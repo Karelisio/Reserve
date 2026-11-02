@@ -39,6 +39,7 @@ jobs:
         run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
 
       - name: Tests instrumentés
+        timeout-minutes: 25
         uses: reactivecircus/android-emulator-runner@v2.34.0
         with:
           api-level: 34
@@ -48,14 +49,20 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: ./gradlew :app:connectedDebugAndroidTest
+          # The device log is kept to understand a failure or a stuck test.
+          script: |
+            adb logcat -c
+            adb logcat -v time > logcat.txt &
+            ./gradlew :app:connectedDebugAndroidTest --info | grep -E "SmokeTest|Tests on|FAILED|PASSED|BUILD" || true
+            test -n "$(ls app/build/outputs/androidTest-results/connected/ 2>/dev/null)" && ! grep -rq "<failure" app/build/outputs/androidTest-results/connected/
 
       - name: Rapports des tests
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v7
         with:
           name: ui-test-reports
           path: |
             app/build/reports/androidTests/connected/
             app/build/outputs/androidTest-results/connected/
+            logcat.txt
           if-no-files-found: ignore

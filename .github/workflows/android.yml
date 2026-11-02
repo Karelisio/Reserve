@@ -9,6 +9,7 @@ on:
       - ".github/scripts/**"
       - ".github/workflows/api-check.yml"
       - ".github/workflows/ui-tests.yml"
+      - "app/src/androidTest/**"
       - "**.md"
   pull_request:
   workflow_dispatch:
