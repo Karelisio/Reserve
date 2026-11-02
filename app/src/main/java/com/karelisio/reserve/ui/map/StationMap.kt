@@ -111,6 +111,8 @@ fun StationMap(
     contentPadding: PaddingValues = PaddingValues(),
     /** Groups nearby markers when zoomed out, labelled with their lowest price (ignored along a route). */
     clusterMarkers: Boolean = false,
+    /** Centers and zooms on this point when it changes (a station opened from elsewhere). */
+    focus: LatLon? = null,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -186,7 +188,7 @@ fun StationMap(
             }
             // Cluster pills are drawn on demand: the image name carries the lowest price.
             mapView.addOnStyleImageMissingListener { id ->
-                val milli = if (id.startsWith(CLUSTER_ICON)) id.removePrefix(CLUSTER_ICON).toIntOrNull() else null
+                val milli = if (id.startsWith(CLUSTER_ICON)) id.removePrefix(CLUSTER_ICON).toDoubleOrNull()?.toInt() else null // "1689" or "1689.0"
                 val s = style
                 if (milli != null && s != null) {
                     val (fill, text, outline) = currentClusterColors
@@ -402,6 +404,12 @@ fun StationMap(
                 else -> m.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(46.6, 2.4), 4.8))
             }
         }
+    }
+
+    LaunchedEffect(style, focus) {
+        val m = map ?: return@LaunchedEffect
+        if (style == null || focus == null) return@LaunchedEffect
+        m.easeCamera(CameraUpdateFactory.newLatLngZoom(LatLng(focus.lat, focus.lon), 14.0), 600)
     }
 
     AndroidView(factory = { mapView }, modifier = modifier)

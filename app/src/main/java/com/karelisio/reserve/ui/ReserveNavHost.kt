@@ -251,7 +251,17 @@ fun ReserveNavHost(
                 popExitTransition = { slideOutHorizontally { it / 3 } + fadeOut() },
             ) { entry ->
                 val id = entry.toRoute<StationRoute>().id
-                StationScreen(vm = appViewModel(key = "station-$id") { StationViewModel(it, id) }, onBack = { nav.popBackStack() })
+                StationScreen(
+                    vm = appViewModel(key = "station-$id") { StationViewModel(it, id) },
+                    onBack = { nav.popBackStack() },
+                    onShowOnMap = { stationId ->
+                        homeVm.focusOnMap(stationId)
+                        nav.navigate(MapRoute) {
+                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
             composable<ChargingRoute>(
                 enterTransition = { slideInHorizontally { it / 3 } + fadeIn() },

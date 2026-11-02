@@ -29,6 +29,7 @@ import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -102,6 +103,18 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit, onOpenCharging: 
         }
     }
     val selected = state.stations.firstOrNull { it.station.id == selectedId }
+
+    // "Voir sur la carte" from a station: select it and center on it.
+    val focusId by vm.mapFocus.collectAsStateWithLifecycle()
+    var focus by remember { mutableStateOf<LatLon?>(null) }
+    LaunchedEffect(focusId, state.stations, state.withoutFuel) {
+        val id = focusId ?: return@LaunchedEffect
+        val ranked = state.stations.firstOrNull { it.station.id == id }?.station
+        val station = ranked ?: state.withoutFuel.firstOrNull { it.id == id } ?: return@LaunchedEffect
+        if (ranked != null) selectedId = id
+        focus = LatLon(station.lat, station.lon)
+        vm.consumeMapFocus()
+    }
     val context = LocalContext.current
     var askNavApp by rememberSaveable { mutableStateOf(false) }
     if (askNavApp && selected != null) {
@@ -128,6 +141,7 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit, onOpenCharging: 
             contentPadding = PaddingValues(bottom = if (selected != null) 180.dp else 0.dp),
             modifier = Modifier.fillMaxSize(),
             clusterMarkers = true,
+            focus = focus,
         )
 
         Column(Modifier.statusBarsPadding().padding(top = 8.dp)) {

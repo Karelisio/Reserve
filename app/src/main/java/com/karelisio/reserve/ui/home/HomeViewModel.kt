@@ -254,6 +254,18 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
+    /** Station to select and center on the map ("Voir sur la carte"), consumed by the map. */
+    private val _mapFocus = MutableStateFlow<Long?>(null)
+    val mapFocus: StateFlow<Long?> = _mapFocus
+
+    fun focusOnMap(stationId: Long) {
+        _mapFocus.value = stationId
+    }
+
+    fun consumeMapFocus() {
+        _mapFocus.value = null
+    }
+
     fun stopTracking() {
         tracking?.cancel()
     }

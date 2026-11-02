@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.HourglassBottom
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -84,7 +85,7 @@ import java.time.LocalTime
 import java.time.format.TextStyle
 
 @Composable
-fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
+fun StationScreen(vm: StationViewModel, onBack: () -> Unit, onShowOnMap: ((Long) -> Unit)? = null) {
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val haptics = rememberHaptics()
@@ -110,6 +111,11 @@ fun StationScreen(vm: StationViewModel, onBack: () -> Unit) {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = t("Retour", "Back")) }
                 },
                 actions = {
+                    if (onShowOnMap != null) state.station?.let { station ->
+                        IconButton(onClick = { haptics.tick(); onShowOnMap(station.id) }) {
+                            Icon(Icons.Rounded.Map, contentDescription = t("Voir sur la carte", "Show on map"))
+                        }
+                    }
                     state.station?.let { station ->
                         IconButton(onClick = {
                             haptics.tick()
