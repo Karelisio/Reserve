@@ -31,7 +31,8 @@ data class RankedStation(
 data class Vehicle(val consumption: Double, val fillLiters: Double)
 
 object Pricing {
-    const val STALE_AFTER_MS = 3L * 24 * 60 * 60 * 1000
+    /** The date published is the last price change: a week without change is worth flagging. */
+    const val STALE_AFTER_MS = 7L * 24 * 60 * 60 * 1000
     const val STALE_PENALTY = 0.02
 
     fun discountFor(station: Station, price: Double, cards: List<LoyaltyCardEntity>): Double =
@@ -83,7 +84,7 @@ object Pricing {
     }
 
     /**
-     * A price not updated for 3 days may no longer be true: it ranks as if it were
+     * A price unchanged for a week may no longer be true: it ranks as if it were
      * [STALE_PENALTY] €/L dearer, so an equally cheap fresh price comes first.
      */
     private val RankedStation.penalty: Double get() = if (stale) STALE_PENALTY else 0.0

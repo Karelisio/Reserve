@@ -176,7 +176,7 @@ private fun FavoriteCard(item: FavoriteItem, onClick: () -> Unit, onRemove: () -
             val price = item.price
             if (price != null && System.currentTimeMillis() - price.updatedAt > Pricing.STALE_AFTER_MS) {
                 Text(
-                    t("Prix de plus de 3 jours", "Price over 3 days old"),
+                    t("Inchangé depuis plus de 7 jours", "Unchanged for over 7 days"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.padding(top = 4.dp),

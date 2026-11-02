@@ -17,7 +17,6 @@ import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.LocalOffer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -62,6 +61,7 @@ fun StationCard(
                 color = if (item.outOfStock) MaterialTheme.colorScheme.surfaceVariant else priceColor(item.effectivePrice, priceRange),
                 highlighted = isBest,
                 stale = item.stale && !item.outOfStock,
+                updatedAt = item.price.updatedAt,
             )
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -106,7 +106,7 @@ fun StationCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                val hasTags = item.outOfStock || item.stale || item.discount > 0 || item.price.reported
+                val hasTags = item.outOfStock || item.discount > 0 || item.price.reported
                 if (hasTags) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
                         if (item.outOfStock) Tag(
@@ -116,10 +116,6 @@ fun StationCard(
                         if (item.price.reported) Tag(
                             t("Signalé par vous", "Reported by you"), MaterialTheme.colorScheme.secondaryContainer,
                             MaterialTheme.colorScheme.onSecondaryContainer, icon = Icons.Rounded.EditNote,
-                        )
-                        if (item.stale) Tag(
-                            t("Prix de plus de 3 j", "Price over 3 days old"), MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer,
-                            icon = Icons.Rounded.HourglassBottom,
                         )
                         if (item.discount > 0) Tag(
                             t("−${Format.cents(item.discount)} fidélité", "−${Format.cents(item.discount)} loyalty"), MaterialTheme.colorScheme.secondaryContainer,

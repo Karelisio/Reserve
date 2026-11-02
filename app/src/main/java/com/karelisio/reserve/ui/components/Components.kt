@@ -88,10 +88,11 @@ fun priceColor(price: Double, range: ClosedFloatingPointRange<Double>?): Color {
 
 /**
  * Price in an expressive "cookie" shape, tinted along the price scale. A [stale] price (over
- * 3 days old) is faded towards grey and says so instead of the unit.
+ * unchanged for a week) is faded towards grey and shows its age instead of the unit.
  */
 @Composable
-fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highlighted: Boolean = false, stale: Boolean = false) {
+fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highlighted: Boolean = false, stale: Boolean = false, updatedAt: Long = 0) {
+    val days = ((System.currentTimeMillis() - updatedAt) / 86_400_000L).coerceAtLeast(0)
     val shown = if (stale) lerp(color, MaterialTheme.colorScheme.surfaceVariant, 0.6f) else color
     val animated by animateColorAsState(shown, label = "priceColor")
     val scale by animateFloatAsState(if (highlighted) 1.06f else 1f, label = "priceScale")
@@ -108,7 +109,7 @@ fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highl
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.clearAndSetSemantics {
                 contentDescription = t("$label euros le litre", "$label euros per litre") +
-                    if (stale) t(", prix de plus de 3 jours", ", price over 3 days old") else ""
+                    if (stale) t(", inchangé depuis $days jours", ", unchanged for $days days") else ""
             },
         ) {
             Text(
@@ -118,7 +119,7 @@ fun PriceBadge(price: Double, color: Color, modifier: Modifier = Modifier, highl
                 maxLines = 1,
             )
             Text(
-                text = if (stale) t("€/L · ancien", "€/L · old") else "€/L",
+                text = if (stale) t("depuis $days j", "for $days d") else "€/L",
                 style = MaterialTheme.typography.labelSmall,
                 color = PriceColors.onColor(animated).copy(alpha = 0.85f),
             )

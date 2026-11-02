@@ -286,6 +286,6 @@ class StationRepository(
         private const val NATIONAL_TTL = 12L * 3600 * 1000
         private const val NO_MATCH_TTL = 7L * 24 * 3600 * 1000
         private const val NAMES_BUDGET_MS = 1_500L
-        private const val REPORT_TTL = Pricing.STALE_AFTER_MS
+        private const val REPORT_TTL = 3L * 24 * 3600 * 1000
     }
 }

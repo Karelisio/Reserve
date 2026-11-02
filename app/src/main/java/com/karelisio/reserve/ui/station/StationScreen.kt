@@ -398,7 +398,7 @@ private fun PricesTable(station: Station, selected: Fuel) {
                 when {
                     out -> Tag(t("Rupture", "Out of stock"), MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, icon = Icons.Rounded.Block)
                     price != null && now - price.updatedAt > Pricing.STALE_AFTER_MS -> Tag(
-                        t("Ancien", "Outdated"), MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer,
+                        t("Inchangé > 7 j", "Unchanged > 7 d"), MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer,
                         icon = Icons.Rounded.HourglassBottom,
                     )
                     else -> Unit
