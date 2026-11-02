@@ -92,7 +92,14 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit, onOpenCharging: 
     val haptics = rememberHaptics()
     var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
     var cameraKey by remember { mutableIntStateOf(0) }
-    val markers = rememberMarkers(state.stations, state.priceRange)
+    val ranked = rememberMarkers(state.stations, state.priceRange)
+    val greyed = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f).toArgb()
+    // Stations without the chosen fuel stay visible, greyed and without a price.
+    val markers = remember(ranked, state.withoutFuel, greyed) {
+        ranked + state.withoutFuel.map {
+            MapMarker(it.id, LatLon(it.lat, it.lon), "", greyed, greyed, Int.MAX_VALUE, showLabel = false)
+        }
+    }
     val selected = state.stations.firstOrNull { it.station.id == selectedId }
     val context = LocalContext.current
     var askNavApp by rememberSaveable { mutableStateOf(false) }
@@ -111,7 +118,10 @@ fun MapScreen(vm: HomeViewModel, onOpenStation: (Long) -> Unit, onOpenCharging: 
             markers = markers,
             userLocation = state.origin,
             selectedId = selectedId,
-            onMarkerClick = { haptics.tick(); selectedId = it },
+            onMarkerClick = { id ->
+                haptics.tick()
+                if (state.stations.any { it.station.id == id }) selectedId = id else onOpenStation(id)
+            },
             onMapClick = { selectedId = null },
             cameraKey = state.result?.fetchedAt?.let { it + cameraKey },
             contentPadding = PaddingValues(bottom = if (selected != null) 180.dp else 0.dp),

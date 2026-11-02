@@ -67,6 +67,8 @@ data class HomeUiState(
     val origin: LatLon? = null,
     /** Stations selling the fuel in the radius that the active filters hide. */
     val hiddenByFilters: Int = 0,
+    /** Stations in the radius that don't sell the fuel: greyed out on the map. */
+    val withoutFuel: List<Station> = emptyList(),
 ) {
     val best: RankedStation? get() = Pricing.best(stations)
     val priceRange: ClosedFloatingPointRange<Double>?
@@ -75,7 +77,11 @@ data class HomeUiState(
 }
 
 /** Ranked stations, and how many selling the fuel nearby the filters left out. */
-private data class Ranking(val stations: List<RankedStation> = emptyList(), val hiddenByFilters: Int = 0)
+private data class Ranking(
+    val stations: List<RankedStation> = emptyList(),
+    val hiddenByFilters: Int = 0,
+    val withoutFuel: List<Station> = emptyList(),
+)
 
 private data class Search(
     val ranked: List<RankedStation>,
@@ -162,14 +168,15 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         app.settings.settings,
         shownResult,
         app.db.favorites().observeIds(),
-        combine(ranked, query, placeSuggestions, place) { r, q, s, p -> Search(r.stations, q, s, p?.label) to r.hiddenByFilters },
+        combine(ranked, query, placeSuggestions, place) { r, q, s, p -> Search(r.stations, q, s, p?.label) to r },
         combine(transient, trend, national, origin) { t, tr, n, o -> Extras(t, tr, n, o) },
-    ) { settings, result, favorites, (search, hidden), (t, trend, national, origin) ->
+    ) { settings, result, favorites, (search, ranking), (t, trend, national, origin) ->
         HomeUiState(
             settings = settings,
             result = result,
             stations = search.filtered(),
-            hiddenByFilters = hidden,
+            hiddenByFilters = ranking.hiddenByFilters,
+            withoutFuel = ranking.withoutFuel,
             query = search.query,
             placeSuggestions = search.suggestions,
             place = search.place,
@@ -266,7 +273,8 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
             filters = settings.filters,
         )
         val hidden = inRadius.count { it.priceOf(settings.fuel) != null && !settings.filters.accepts(it) }
-        return Ranking(Pricing.sort(ranked, settings.sort), hidden)
+        val withoutFuel = inRadius.filter { it.priceOf(settings.fuel) == null && settings.filters.accepts(it) }
+        return Ranking(Pricing.sort(ranked, settings.sort), hidden, withoutFuel)
     }
 
     fun refresh(userInitiated: Boolean = false) {
